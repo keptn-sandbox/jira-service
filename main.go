@@ -46,7 +46,8 @@ type keptnEvent struct {
 			IndicatorResults []struct {
 				ID         string `json:"id"`
 				Violations []struct {
-					Value     interface{}     `json:"value"`
+					Value interface{} `json:"value"`
+					// we need to  take the key as raw json and parse it later
 					Key       json.RawMessage `json:"key"`
 					Breach    string          `json:"breach"`
 					Threshold interface{}     `json:"threshold"`
@@ -126,10 +127,10 @@ func postJIRAIssue(jiraHostname string, event keptnEvent) {
 
 	//	fmt.Println("URL to be used: " + url)
 
+	// iterating through the contents of IndicatorResults so they can be sent to JIRA
 	for i := 0; i < len(event.Data.Evaluationdetails.IndicatorResults); i++ {
-		//fmt.Println(event.Data.Evaluationdetails.IndicatorResults[i])
 		for v := 0; v < len(event.Data.Evaluationdetails.IndicatorResults[i].Violations); v++ {
-			//fmt.Println(event.Data.Evaluationdetails.IndicatorResults[i].Violations[v])
+
 			valDouble, ok := event.Data.Evaluationdetails.IndicatorResults[i].Violations[v].Value.(float64)
 			if ok {
 				strViolationsValue = fmt.Sprintf("%f", valDouble)
@@ -142,7 +143,7 @@ func postJIRAIssue(jiraHostname string, event keptnEvent) {
 			if ok {
 				strViolationsValue = valString
 			}
-			// threshold might not exist
+			// threshold might not exist and should be a float64, if it is a string this will say it isn't there...
 			valThreshold, ok := event.Data.Evaluationdetails.IndicatorResults[i].Violations[v].Threshold.(float64)
 			if ok {
 				strValThreshold = strconv.FormatFloat(valThreshold, 'f', -1, 64)
@@ -211,6 +212,7 @@ func postJIRAIssue(jiraHostname string, event keptnEvent) {
 	issue, response, err := jiraClient.Issue.Create(&i)
 
 	if err != nil {
+		// all this stuff is necessary to get back the response from JIRA if there is an error
 		bodyBytes, _ := ioutil.ReadAll(response.Response.Body)
 		bodyString := string(bodyBytes)
 		fmt.Printf("%s\n", bodyString)
