@@ -6,7 +6,6 @@ The service is subscribed to the following keptn events:
 
 - sh.keptn.events.evaluation-done
 
-
 ## Installation
 
 To use this service, you must have a JIRA instance accessible from your Kubernetes cluster. Additionally, you must have secrets defined for the following:
@@ -18,6 +17,13 @@ you can create those secrets with the following command:
 
 ```
 kubectl -n keptn create secret generic jira-service --from-literal="jira-hostname=<replacewithyourinstance>.atlassian.com" --from-literal="jira-username=<replacewithyourusername>" --from-literal="jira-token=<replacewithyouraccesstoken>"
+
+```
+Note, jira-project secret is optional. By default the jira-service will be looking for a JIRA project that is identical to the Keptn project.
+If you wish to define a different JIRA project, utilize this command:
+
+```
+kubectl -n keptn create secret generic jira-service --from-literal="jira-hostname=<replacewithyourinstance>.atlassian.com" --from-literal="jira-username=<replacewithyourusername>" --from-literal="jira-token=<replacewithyouraccesstoken>" --from-literal="jira-project=<replacewithyourjiraproject>"
 
 ```
 
@@ -49,8 +55,6 @@ Expected output:
 ```
 deployment.apps/jira-service-evaluation-done-distributor created
 ```
-
-
 
 ## Verification of installation
 

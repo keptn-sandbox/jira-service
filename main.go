@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/andygrunwald/go-jira"
 )
@@ -73,7 +74,7 @@ var (
 var jiraHostname string
 var jiraUsername string
 var jiraToken string
-
+var jiraProject string
 var ufoRow string
 
 //Logging : sets up info and error logging
@@ -108,9 +109,15 @@ func keptnHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	jiraProject = os.Getenv("JIRA_PROJECT")
+	if jiraProject == "" {
+		jiraProject = strings.ToUpper(event.Data.Project)
+	}
+
 	if event.Type == "sh.keptn.events.evaluation-done" {
 		if event.Data.Evaluationpassed != true {
 			infoLog.Println("Trying to talk to JIRA at " + jiraHostname)
+			infoLog.Println("using JIRA project " + jiraProject)
 			postJIRAIssue(jiraHostname, event)
 		}
 	}
@@ -204,7 +211,7 @@ func postJIRAIssue(jiraHostname string, event keptnEvent) {
 				Name: "Bug",
 			},
 			Project: jira.Project{
-				Key: "SOCKSHOP",
+				Key: jiraProject,
 			},
 			Summary: "Keptn Test Evaluation Failed",
 		},
