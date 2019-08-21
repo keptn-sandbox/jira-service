@@ -8,6 +8,11 @@ FROM golang:1.12 as builder
 WORKDIR /go/src/github.com/akirasoft/jira-service
 COPY . .
 
+ARG DEP_VERSION=0.5.3
+RUN curl -L -s https://github.com/golang/dep/releases/download/v$DEP_VERSION/dep-linux-amd64 -o ./dep && \
+  chmod +x ./dep && \
+  ./dep ensure
+
 # Build the command inside the container.
 # (You may fetch or manage dependencies here,
 # either manually or with a tool like "godep".)
@@ -16,6 +21,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -v -o jira-service
 # Use a Docker multi-stage build to create a lean production image.
 # https://docs.docker.com/develop/develop-images/multistage-build/#use-multi-stage-builds
 FROM alpine
+RUN apk add --no-cache ca-certificates
 
 # Copy the binary to the production image from the builder stage.
 COPY --from=builder /go/src/github.com/akirasoft/jira-service/jira-service /jira-service
