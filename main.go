@@ -77,7 +77,7 @@ func Logging(infoLogger io.Writer, errorLogger io.Writer) {
 }
 
 //keptnHandler : receives keptn events via http and creates JIRA tickets for failed evaluations
-func keptnHandler(event cloudevents.Event) {
+func keptnHandler(ctx context.Context, event cloudevents.Event) {
 	var shkeptncontext string
 	event.Context.ExtensionAs("shkeptncontext", &shkeptncontext)
 
@@ -86,6 +86,7 @@ func keptnHandler(event cloudevents.Event) {
 		fmt.Printf("Got Data Error: %s", err.Error())
 		return
 	}
+
 	jiraHostname = os.Getenv("JIRA_HOSTNAME")
 	if jiraHostname == "" {
 		errorLog.Println("No JIRA hostname defined")
@@ -107,6 +108,15 @@ func keptnHandler(event cloudevents.Event) {
 		jiraProject = strings.ToUpper(data.Project)
 	}
 
+	fmt.Printf("%v\n", event.Type())
+
+	if event.Type() != "sh.keptn.events.evaluation-done" {
+		const errorMsg = "Received unexpected keptn event"
+		eventType := event.Type()
+		errorLog.Println(eventType)
+		errorLog.Println(errorMsg)
+		return
+	}
 	if event.Type() == "sh.keptn.events.evaluation-done" {
 		if data.Evaluationpassed != true {
 			infoLog.Println("Trying to talk to JIRA at " + jiraHostname)
@@ -225,14 +235,17 @@ func postJIRAIssue(jiraHostname string, data EvaluationDoneEvent) {
 func main() {
 	Logging(os.Stdout, os.Stderr)
 
-	Port, err := strconv.Atoi(os.Getenv("PORT"))
+	Port, err := strconv.Atoi(os.Getenv("RCV_PORT"))
 	if Port == 0 {
 		Port = 8080
 	}
-	Path := os.Getenv("PATH")
+	Path := os.Getenv("RCV_PATH")
 	if Path == "" {
 		Path = "/"
 	}
+
+	fmt.Printf("Listening with Path = %s, port = %d\n", Path, Port)
+
 	t, err := cloudevents.NewHTTPTransport(
 		cloudevents.WithPort(Port),
 		cloudevents.WithPath(Path),
@@ -244,6 +257,7 @@ func main() {
 	log.Print("JIRA service started.")
 
 	c, err := cloudevents.NewClient(t)
+
 	if err != nil {
 		log.Fatalf("failed to create client, %v", err)
 	}
