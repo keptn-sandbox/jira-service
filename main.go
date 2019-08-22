@@ -1,63 +1,73 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/andygrunwald/go-jira"
+	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/kelseyhightower/envconfig"
 )
 
-type keptnEvent struct {
-	Specversion     string `json:"specversion"`
-	Type            string `json:"type"`
-	Source          string `json:"source"`
-	ID              string `json:"id"`
-	Time            string `json:"time"`
-	Datacontenttype string `json:"datacontenttype"`
-	Shkeptncontext  string `json:"shkeptncontext"`
-	Data            struct {
-		Githuborg          string `json:"githuborg"`
-		Project            string `json:"project"`
-		Teststrategy       string `json:"teststrategy"`
-		Deploymentstrategy string `json:"deploymentstrategy"`
-		Stage              string `json:"stage"`
-		Service            string `json:"service"`
-		Image              string `json:"image"`
-		Tag                string `json:"tag"`
-		Evaluationpassed   bool   `json:"evaluationpassed"`
-		Evaluationdetails  struct {
-			Options struct {
-				TimeStart int `json:"timeStart"`
-				TimeEnd   int `json:"timeEnd"`
-			} `json:"options"`
-			TotalScore int `json:"totalScore"`
-			Objectives struct {
-				Pass    int `json:"pass"`
-				Warning int `json:"warning"`
-			} `json:"objectives"`
-			// Data coming back from Prometheus sources is not strongly typed
-			// especially within indicatorResults
-			IndicatorResults []struct {
-				ID         string `json:"id"`
-				Violations []struct {
-					Value interface{} `json:"value"`
-					// we need to  take the key as raw json and parse it later
-					Key       json.RawMessage `json:"key"`
-					Breach    string          `json:"breach"`
-					Threshold interface{}     `json:"threshold"`
-				} `json:"violations"`
-				Score int `json:"score"`
-			} `json:"indicatorResults"`
-			Result string `json:"result"`
-		} `json:"evaluationdetails"`
-	} `json:"data"`
+type envConfig struct {
+	// Port on which to listen for cloudevents
+	Port int    `envconfig:"RCV_PORT" default:"8080"`
+	Path string `envconfig:"RCV_PATH" default:"/"`
+}
+
+type jiraConfig struct {
+	Hostname string
+	Username string
+	Token    string
+	Project  string
+}
+
+// JiraConf declaring this in outer block so that I don't have to pedantically pass it around
+var JiraConf jiraConfig
+
+// EvaluationDoneEvent ...
+type EvaluationDoneEvent struct {
+	Githuborg          string `json:"githuborg"`
+	Project            string `json:"project"`
+	Teststrategy       string `json:"teststrategy"`
+	Deploymentstrategy string `json:"deploymentstrategy"`
+	Stage              string `json:"stage"`
+	Service            string `json:"service"`
+	Image              string `json:"image"`
+	Tag                string `json:"tag"`
+	Evaluationpassed   bool   `json:"evaluationpassed"`
+	Evaluationdetails  struct {
+		Options struct {
+			TimeStart int `json:"timeStart"`
+			TimeEnd   int `json:"timeEnd"`
+		} `json:"options"`
+		TotalScore int `json:"totalScore"`
+		Objectives struct {
+			Pass    int `json:"pass"`
+			Warning int `json:"warning"`
+		} `json:"objectives"`
+		// Data coming back from Prometheus sources is not strongly typed
+		// especially within indicatorResults
+		IndicatorResults []struct {
+			ID         string `json:"id"`
+			Violations []struct {
+				Value interface{} `json:"value"`
+				// we need to  take the key as raw json and parse it later
+				Key       json.RawMessage `json:"key"`
+				Breach    string          `json:"breach"`
+				Threshold interface{}     `json:"threshold"`
+			} `json:"violations"`
+			Score int `json:"score"`
+		} `json:"indicatorResults"`
+		Result string `json:"result"`
+	} `json:"evaluationdetails"`
 }
 
 // PrometheusKey is a json object containing job and an instance, we will use instance as it is more verbose
@@ -66,64 +76,40 @@ type PrometheusKey struct {
 	Job      string `json:"job"`
 }
 
-var (
-	infoLog  *log.Logger
-	errorLog *log.Logger
-)
-
-var jiraHostname string
-var jiraUsername string
-var jiraToken string
-var jiraProject string
-var ufoRow string
-
-//Logging : sets up info and error logging
-func Logging(infoLogger io.Writer, errorLogger io.Writer) {
-	infoLog = log.New(infoLogger, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
-	errorLog = log.New(errorLogger, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
-}
-
 //keptnHandler : receives keptn events via http and sets UFO LEDs based on payload
-func keptnHandler(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	var event keptnEvent
-	err := decoder.Decode(&event)
-	if err != nil {
-		fmt.Println("Error while parsing JSON payload: " + err.Error())
-		return
+func keptnHandler(ctx context.Context, event cloudevents.Event) error {
+	var shkeptncontext string
+	event.Context.ExtensionAs("shkeptncontext", &shkeptncontext)
+
+	data := &EvaluationDoneEvent{}
+	if err := event.DataAs(data); err != nil {
+		// replace with keptn logger
+		fmt.Printf("Got Data Error: %s\n", err.Error())
+		return err
 	}
 
-	jiraHostname = os.Getenv("JIRA_HOSTNAME")
-	if jiraHostname == "" {
-		errorLog.Println("No JIRA hostname defined")
-		return
-	}
-	jiraUsername = os.Getenv("JIRA_USERNAME")
-	if jiraUsername == "" {
-		errorLog.Println("No JIRA username defined")
-		return
-	}
-	jiraToken = os.Getenv("JIRA_TOKEN")
-	if jiraToken == "" {
-		errorLog.Println("No JIRA token defined")
-		return
+	if JiraConf.Project == "" {
+		JiraConf.Project = strings.ToUpper(data.Project)
 	}
 
-	jiraProject = os.Getenv("JIRA_PROJECT")
-	if jiraProject == "" {
-		jiraProject = strings.ToUpper(event.Data.Project)
+	if event.Type() != "sh.keptn.events.evaluation-done" {
+		const errorMsg = "Received unexpected keptn event"
+		//replace with keptn logger
+		log.Println(errorMsg)
+		return errors.New(errorMsg)
 	}
 
-	if event.Type == "sh.keptn.events.evaluation-done" {
-		if event.Data.Evaluationpassed != true {
-			infoLog.Println("Trying to talk to JIRA at " + jiraHostname)
-			infoLog.Println("using JIRA project " + jiraProject)
-			postJIRAIssue(jiraHostname, event)
+	if event.Type() == "sh.keptn.events.evaluation-done" {
+		if data.Evaluationpassed != true {
+			// use keptn logger
+			log.Printf("Using JiraConfig: %+v\n", JiraConf)
+			go postJIRAIssue(JiraConf.Hostname, *data, shkeptncontext)
 		}
 	}
+	return nil
 }
 
-func postJIRAIssue(jiraHostname string, event keptnEvent) {
+func postJIRAIssue(jiraHostname string, data EvaluationDoneEvent, shkeptncontext string) {
 	var strViolationsValue string
 	var strKey string
 	var strValThreshold string
@@ -132,71 +118,67 @@ func postJIRAIssue(jiraHostname string, event keptnEvent) {
 	var indicatorValues string
 	url := "https://" + jiraHostname
 
-	//	fmt.Println("URL to be used: " + url)
-
 	// iterating through the contents of IndicatorResults so they can be sent to JIRA
-	for i := 0; i < len(event.Data.Evaluationdetails.IndicatorResults); i++ {
-		for v := 0; v < len(event.Data.Evaluationdetails.IndicatorResults[i].Violations); v++ {
+	for i := 0; i < len(data.Evaluationdetails.IndicatorResults); i++ {
+		for v := 0; v < len(data.Evaluationdetails.IndicatorResults[i].Violations); v++ {
 
-			valDouble, ok := event.Data.Evaluationdetails.IndicatorResults[i].Violations[v].Value.(float64)
+			valDouble, ok := data.Evaluationdetails.IndicatorResults[i].Violations[v].Value.(float64)
 			if ok {
 				strViolationsValue = fmt.Sprintf("%f", valDouble)
 			}
-			valBoolean, ok := event.Data.Evaluationdetails.IndicatorResults[i].Violations[v].Value.(bool)
+			valBoolean, ok := data.Evaluationdetails.IndicatorResults[i].Violations[v].Value.(bool)
 			if ok {
 				strViolationsValue = fmt.Sprintf("%t", valBoolean)
 			}
-			valString, ok := event.Data.Evaluationdetails.IndicatorResults[i].Violations[v].Value.(string)
+			valString, ok := data.Evaluationdetails.IndicatorResults[i].Violations[v].Value.(string)
 			if ok {
 				strViolationsValue = valString
 			}
 			// threshold might not exist and should be a float64, if it is a string this will say it isn't there...
-			valThreshold, ok := event.Data.Evaluationdetails.IndicatorResults[i].Violations[v].Threshold.(float64)
+			valThreshold, ok := data.Evaluationdetails.IndicatorResults[i].Violations[v].Threshold.(float64)
 			if ok {
 				strValThreshold = strconv.FormatFloat(valThreshold, 'f', -1, 64)
 			} else {
 				strValThreshold = "No Threshold in Pitometer response"
 			}
 
-			if err := json.Unmarshal(event.Data.Evaluationdetails.IndicatorResults[i].Violations[v].Key, &keyDT); err == nil {
+			if err := json.Unmarshal(data.Evaluationdetails.IndicatorResults[i].Violations[v].Key, &keyDT); err == nil {
 				strKey = keyDT
 			}
 			// Prometheus Key is an object containing job and an instance, we will use instance as it is more verbose
 
-			if err := json.Unmarshal(event.Data.Evaluationdetails.IndicatorResults[i].Violations[v].Key, &keyProm); err == nil {
+			if err := json.Unmarshal(data.Evaluationdetails.IndicatorResults[i].Violations[v].Key, &keyProm); err == nil {
 				strKey = keyProm.Instance
 			}
 			indicatorValues = indicatorValues +
-				"\nIndicator ID: " + event.Data.Evaluationdetails.IndicatorResults[i].ID +
+				"\nIndicator ID: " + data.Evaluationdetails.IndicatorResults[i].ID +
 				"\nIndicator Key: " + strKey +
 				"\nIndicator Value: " + strViolationsValue +
 				"\nIndicator Threshold: " + strValThreshold +
-				"\nIndicator Breach: " + event.Data.Evaluationdetails.IndicatorResults[i].Violations[v].Breach
+				"\nIndicator Breach: " + data.Evaluationdetails.IndicatorResults[i].Violations[v].Breach
 		}
 	}
 
 	jiraIssue := "Keptn test evaluation failed, build was not deployed" +
-		"\nshkeptncontext: " + event.Shkeptncontext +
-		"\nFailed stage: " + event.Data.Stage +
-		"\nFailed service: " + event.Data.Service +
-		"\nGithuborg: " + event.Data.Githuborg +
-		"\nTotal score: " + strconv.Itoa(event.Data.Evaluationdetails.TotalScore) +
-		"\nPass Threshold: " + strconv.Itoa(event.Data.Evaluationdetails.Objectives.Pass) +
-		"\nWarning Threshold: " + strconv.Itoa(event.Data.Evaluationdetails.Objectives.Warning) +
+		"\nshkeptncontext: " + shkeptncontext +
+		"\nFailed stage: " + data.Stage +
+		"\nFailed service: " + data.Service +
+		"\nGithuborg: " + data.Githuborg +
+		"\nTotal score: " + strconv.Itoa(data.Evaluationdetails.TotalScore) +
+		"\nPass Threshold: " + strconv.Itoa(data.Evaluationdetails.Objectives.Pass) +
+		"\nWarning Threshold: " + strconv.Itoa(data.Evaluationdetails.Objectives.Warning) +
 		indicatorValues +
-		"\nOverall Result: " + event.Data.Evaluationdetails.Result
+		"\nOverall Result: " + data.Evaluationdetails.Result
 
 	tp := jira.BasicAuthTransport{
-		Username: jiraUsername,
-		Password: jiraToken,
+		Username: JiraConf.Username,
+		Password: JiraConf.Token,
 	}
 
 	jiraClient, err := jira.NewClient(tp.Client(), url)
 	if err != nil {
 		panic(err)
 	}
-
-	//	fmt.Printf("Issue Text %s\n", jiraIssue)
 
 	i := jira.Issue{
 		Fields: &jira.IssueFields{
@@ -211,7 +193,7 @@ func postJIRAIssue(jiraHostname string, event keptnEvent) {
 				Name: "Bug",
 			},
 			Project: jira.Project{
-				Key: jiraProject,
+				Key: JiraConf.Project,
 			},
 			Summary: "Keptn Test Evaluation Failed",
 		},
@@ -225,20 +207,43 @@ func postJIRAIssue(jiraHostname string, event keptnEvent) {
 		fmt.Printf("%s\n", bodyString)
 		panic(err)
 	}
-	fmt.Printf("Key:%s, ID:%+v\n", issue.Key, issue.ID)
+
+	// use keptn logger
+	log.Printf("JIRA returned Key:%s, ID:%+v\n", issue.Key, issue.ID)
 
 }
 
 func main() {
-	Logging(os.Stdout, os.Stderr)
+	var env envConfig
+	if err := envconfig.Process("", &env); err != nil {
+		log.Printf("[ERROR] Failed to process listener var: %s", err)
+		os.Exit(1)
+	}
+	err := envconfig.Process("jira", &JiraConf)
+	if err != nil {
+		log.Printf("[ERROR] Failed to process listener var: %s", err)
+		os.Exit(1)
+	}
+	os.Exit(_main(os.Args[1:], env))
+}
 
-	http.HandleFunc("/", keptnHandler)
+func _main(args []string, env envConfig) int {
+	ctx := context.Background()
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	t, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithPort(env.Port),
+		cloudevents.WithPath(env.Path),
+	)
+	if err != nil {
+		log.Printf("failed to create transport, %v", err)
+		return 1
+	}
+	c, err := cloudevents.NewClient(t)
+	if err != nil {
+		log.Printf("failed to create client, %v", err)
+		return 1
 	}
 
-	log.Print("JIRA service started.")
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+	log.Fatalf("failed to start receiver: %s", c.StartReceiver(ctx, keptnHandler))
+	return 0
 }
