@@ -83,7 +83,7 @@ func keptnHandler(ctx context.Context, event cloudevents.Event) error {
 
 	data := &EvaluationDoneEvent{}
 	if err := event.DataAs(data); err != nil {
-		// replace with keptn logger
+		//TODO: replace with keptn logger
 		fmt.Printf("Got Data Error: %s\n", err.Error())
 		return err
 	}
@@ -94,15 +94,16 @@ func keptnHandler(ctx context.Context, event cloudevents.Event) error {
 
 	if event.Type() != "sh.keptn.events.evaluation-done" {
 		const errorMsg = "Received unexpected keptn event"
-		//replace with keptn logger
+		//TODO: replace with keptn logger
 		log.Println(errorMsg)
 		return errors.New(errorMsg)
 	}
 
 	if event.Type() == "sh.keptn.events.evaluation-done" {
 		if data.Evaluationpassed != true {
-			// use keptn logger
-			log.Printf("Using JiraConfig: %+v\n", JiraConf)
+			//TODO: replace with keptn logger
+			//don't put token in logs:
+			log.Printf("Using JiraConfig: Hostname:%s, Username:%s, Project:%s", JiraConf.Hostname, JiraConf.Username, JiraConf.Project)
 			go postJIRAIssue(JiraConf.Hostname, *data, shkeptncontext)
 		}
 	}
