@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -13,9 +13,26 @@ import (
 
 	"github.com/andygrunwald/go-jira"
 	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/kelseyhightower/envconfig"
 )
 
-// EvaluationDoneEvent payload for evaluation done event, see keptn spec
+type envConfig struct {
+	// Port on which to listen for cloudevents
+	Port int    `envconfig:"RCV_PORT" default:"8080"`
+	Path string `envconfig:"RCV_PATH" default:"/"`
+}
+
+type jiraConfig struct {
+	Hostname string
+	Username string
+	Token    string
+	Project  string
+}
+
+// JiraConf declaring this in outer block so that I don't have to pedantically pass it around
+var JiraConf jiraConfig
+
+// EvaluationDoneEvent ...
 type EvaluationDoneEvent struct {
 	Githuborg          string `json:"githuborg"`
 	Project            string `json:"project"`
@@ -59,74 +76,40 @@ type PrometheusKey struct {
 	Job      string `json:"job"`
 }
 
-var (
-	infoLog  *log.Logger
-	errorLog *log.Logger
-)
-
-var jiraHostname string
-var jiraUsername string
-var jiraToken string
-var jiraProject string
-var ufoRow string
-
-//Logging : sets up info and error logging
-func Logging(infoLogger io.Writer, errorLogger io.Writer) {
-	infoLog = log.New(infoLogger, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
-	errorLog = log.New(errorLogger, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
-}
-
-//keptnHandler : receives keptn events via http and creates JIRA tickets for failed evaluations
-func keptnHandler(ctx context.Context, event cloudevents.Event) {
+//keptnHandler : receives keptn events via http and sets UFO LEDs based on payload
+func keptnHandler(ctx context.Context, event cloudevents.Event) error {
 	var shkeptncontext string
 	event.Context.ExtensionAs("shkeptncontext", &shkeptncontext)
 
 	data := &EvaluationDoneEvent{}
 	if err := event.DataAs(data); err != nil {
-		fmt.Printf("Got Data Error: %s", err.Error())
-		return
+		// replace with keptn logger
+		fmt.Printf("Got Data Error: %s\n", err.Error())
+		return err
 	}
 
-	jiraHostname = os.Getenv("JIRA_HOSTNAME")
-	if jiraHostname == "" {
-		errorLog.Println("No JIRA hostname defined")
-		return
+	if JiraConf.Project == "" {
+		JiraConf.Project = strings.ToUpper(data.Project)
 	}
-	jiraUsername = os.Getenv("JIRA_USERNAME")
-	if jiraUsername == "" {
-		errorLog.Println("No JIRA username defined")
-		return
-	}
-	jiraToken = os.Getenv("JIRA_TOKEN")
-	if jiraToken == "" {
-		errorLog.Println("No JIRA token defined")
-		return
-	}
-
-	jiraProject = os.Getenv("JIRA_PROJECT")
-	if jiraProject == "" {
-		jiraProject = strings.ToUpper(data.Project)
-	}
-
-	fmt.Printf("%v\n", event.Type())
 
 	if event.Type() != "sh.keptn.events.evaluation-done" {
 		const errorMsg = "Received unexpected keptn event"
-		eventType := event.Type()
-		errorLog.Println(eventType)
-		errorLog.Println(errorMsg)
-		return
+		//replace with keptn logger
+		log.Println(errorMsg)
+		return errors.New(errorMsg)
 	}
+
 	if event.Type() == "sh.keptn.events.evaluation-done" {
 		if data.Evaluationpassed != true {
-			infoLog.Println("Trying to talk to JIRA at " + jiraHostname)
-			infoLog.Println("using JIRA project " + jiraProject)
-			postJIRAIssue(jiraHostname, *data)
+			// use keptn logger
+			log.Printf("Using JiraConfig: %+v\n", JiraConf)
+			go postJIRAIssue(JiraConf.Hostname, *data, shkeptncontext)
 		}
 	}
+	return nil
 }
 
-func postJIRAIssue(jiraHostname string, data EvaluationDoneEvent) {
+func postJIRAIssue(jiraHostname string, data EvaluationDoneEvent, shkeptncontext string) {
 	var strViolationsValue string
 	var strKey string
 	var strValThreshold string
@@ -134,8 +117,6 @@ func postJIRAIssue(jiraHostname string, data EvaluationDoneEvent) {
 	var keyProm PrometheusKey
 	var indicatorValues string
 	url := "https://" + jiraHostname
-
-	//	fmt.Println("URL to be used: " + url)
 
 	// iterating through the contents of IndicatorResults so they can be sent to JIRA
 	for i := 0; i < len(data.Evaluationdetails.IndicatorResults); i++ {
@@ -179,7 +160,7 @@ func postJIRAIssue(jiraHostname string, data EvaluationDoneEvent) {
 	}
 
 	jiraIssue := "Keptn test evaluation failed, build was not deployed" +
-		//"\nshkeptncontext: " + event.Shkeptncontext +
+		"\nshkeptncontext: " + shkeptncontext +
 		"\nFailed stage: " + data.Stage +
 		"\nFailed service: " + data.Service +
 		"\nGithuborg: " + data.Githuborg +
@@ -190,16 +171,14 @@ func postJIRAIssue(jiraHostname string, data EvaluationDoneEvent) {
 		"\nOverall Result: " + data.Evaluationdetails.Result
 
 	tp := jira.BasicAuthTransport{
-		Username: jiraUsername,
-		Password: jiraToken,
+		Username: JiraConf.Username,
+		Password: JiraConf.Token,
 	}
 
 	jiraClient, err := jira.NewClient(tp.Client(), url)
 	if err != nil {
 		panic(err)
 	}
-
-	//	fmt.Printf("Issue Text %s\n", jiraIssue)
 
 	i := jira.Issue{
 		Fields: &jira.IssueFields{
@@ -214,7 +193,7 @@ func postJIRAIssue(jiraHostname string, data EvaluationDoneEvent) {
 				Name: "Bug",
 			},
 			Project: jira.Project{
-				Key: jiraProject,
+				Key: JiraConf.Project,
 			},
 			Summary: "Keptn Test Evaluation Failed",
 		},
@@ -228,38 +207,43 @@ func postJIRAIssue(jiraHostname string, data EvaluationDoneEvent) {
 		fmt.Printf("%s\n", bodyString)
 		panic(err)
 	}
-	fmt.Printf("Key:%s, ID:%+v\n", issue.Key, issue.ID)
+
+	// use keptn logger
+	log.Printf("JIRA returned Key:%s, ID:%+v\n", issue.Key, issue.ID)
 
 }
 
 func main() {
-	Logging(os.Stdout, os.Stderr)
-
-	Port, err := strconv.Atoi(os.Getenv("RCV_PORT"))
-	if Port == 0 {
-		Port = 8080
+	var env envConfig
+	if err := envconfig.Process("", &env); err != nil {
+		log.Printf("[ERROR] Failed to process listener var: %s", err)
+		os.Exit(1)
 	}
-	Path := os.Getenv("RCV_PATH")
-	if Path == "" {
-		Path = "/"
+	err := envconfig.Process("jira", &JiraConf)
+	if err != nil {
+		log.Printf("[ERROR] Failed to process listener var: %s", err)
+		os.Exit(1)
 	}
+	os.Exit(_main(os.Args[1:], env))
+}
 
-	fmt.Printf("Listening with Path = %s, port = %d\n", Path, Port)
+func _main(args []string, env envConfig) int {
+	ctx := context.Background()
 
 	t, err := cloudevents.NewHTTPTransport(
-		cloudevents.WithPort(Port),
-		cloudevents.WithPath(Path),
+		cloudevents.WithPort(env.Port),
+		cloudevents.WithPath(env.Path),
 	)
 	if err != nil {
-		log.Fatalf("failed to create transport, %v", err)
+		log.Printf("failed to create transport, %v", err)
+		return 1
 	}
-
-	log.Print("JIRA service started.")
-
 	c, err := cloudevents.NewClient(t)
-
 	if err != nil {
-		log.Fatalf("failed to create client, %v", err)
+		log.Printf("failed to create client, %v", err)
+		return 1
 	}
-	log.Fatal(c.StartReceiver(context.Background(), keptnHandler))
+
+	log.Fatalf("failed to start receiver: %s", c.StartReceiver(ctx, keptnHandler))
+	return 0
 }
