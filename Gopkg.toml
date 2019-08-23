@@ -36,7 +36,11 @@
 [[constraint]]
   name = "github.com/kelseyhightower/envconfig"
   version = "1.4.0"
-    
+
+[[constraint]]
+  name = "github.com/keptn/go-utils"
+  branch = "develop"
+
 [prune]
   go-tests = true
   unused-packages = true

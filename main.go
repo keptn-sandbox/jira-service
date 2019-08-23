@@ -14,6 +14,7 @@ import (
 	"github.com/andygrunwald/go-jira"
 	cloudevents "github.com/cloudevents/sdk-go"
 	"github.com/kelseyhightower/envconfig"
+	keptnutils "github.com/keptn/go-utils/pkg/utils"
 )
 
 type envConfig struct {
@@ -81,10 +82,12 @@ func keptnHandler(ctx context.Context, event cloudevents.Event) error {
 	var shkeptncontext string
 	event.Context.ExtensionAs("shkeptncontext", &shkeptncontext)
 
+	logger := keptnutils.NewLogger(shkeptncontext, event.Context.GetID(), "jira-service")
+
 	data := &EvaluationDoneEvent{}
 	if err := event.DataAs(data); err != nil {
 		//TODO: replace with keptn logger
-		fmt.Printf("Got Data Error: %s\n", err.Error())
+		logger.Error(fmt.Sprintf("Got Data Error: %s", err.Error()))
 		return err
 	}
 
@@ -95,7 +98,7 @@ func keptnHandler(ctx context.Context, event cloudevents.Event) error {
 	if event.Type() != "sh.keptn.events.evaluation-done" {
 		const errorMsg = "Received unexpected keptn event"
 		//TODO: replace with keptn logger
-		log.Println(errorMsg)
+		logger.Error(errorMsg)
 		return errors.New(errorMsg)
 	}
 
@@ -103,14 +106,14 @@ func keptnHandler(ctx context.Context, event cloudevents.Event) error {
 		if data.Evaluationpassed != true {
 			//TODO: replace with keptn logger
 			//don't put token in logs:
-			log.Printf("Using JiraConfig: Hostname:%s, Username:%s, Project:%s", JiraConf.Hostname, JiraConf.Username, JiraConf.Project)
-			go postJIRAIssue(JiraConf.Hostname, *data, shkeptncontext)
+			logger.Info(fmt.Sprintf("Using JiraConfig: Hostname:%s, Username:%s, Project:%s", JiraConf.Hostname, JiraConf.Username, JiraConf.Project))
+			go postJIRAIssue(JiraConf.Hostname, logger, *data, shkeptncontext)
 		}
 	}
 	return nil
 }
 
-func postJIRAIssue(jiraHostname string, data EvaluationDoneEvent, shkeptncontext string) {
+func postJIRAIssue(jiraHostname string, logger *keptnutils.Logger, data EvaluationDoneEvent, shkeptncontext string) {
 	var strViolationsValue string
 	var strKey string
 	var strValThreshold string
@@ -205,12 +208,12 @@ func postJIRAIssue(jiraHostname string, data EvaluationDoneEvent, shkeptncontext
 		// all this stuff is necessary to get back the response from JIRA if there is an error
 		bodyBytes, _ := ioutil.ReadAll(response.Response.Body)
 		bodyString := string(bodyBytes)
-		fmt.Printf("%s\n", bodyString)
+		logger.Error(fmt.Sprintf("JIRA returned: %s\n", bodyString))
 		panic(err)
 	}
 
 	// use keptn logger
-	log.Printf("JIRA returned Key:%s, ID:%+v\n", issue.Key, issue.ID)
+	logger.Info(fmt.Sprintf("JIRA returned Key:%s, ID:%+v\n", issue.Key, issue.ID))
 
 }
 
@@ -223,6 +226,18 @@ func main() {
 	err := envconfig.Process("jira", &JiraConf)
 	if err != nil {
 		log.Printf("[ERROR] Failed to process listener var: %s", err)
+		os.Exit(1)
+	}
+	if JiraConf.Hostname == "" {
+		log.Print("[ERROR] JIRA hostname not defined")
+		os.Exit(1)
+	}
+	if JiraConf.Username == "" {
+		log.Print("[ERROR] JIRA username not defined")
+		os.Exit(1)
+	}
+	if JiraConf.Token == "" {
+		log.Print("[ERROR] JIRA token not defined")
 		os.Exit(1)
 	}
 	os.Exit(_main(os.Args[1:], env))
