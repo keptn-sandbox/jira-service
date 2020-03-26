@@ -8,7 +8,8 @@ The service is subscribed to the following keptn events:
 
 ## Installation
 
-To use this service, you must have a JIRA instance accessible from your Kubernetes cluster. Additionally, you must have secrets defined for the following:
+To use this service, you must have a JIRA instance accessible from your Kubernetes cluster. One can apply for a JIRA developer instance directly via Atlassian here: [http://go.atlassian.com/cloud-dev](http://go.atlassian.com/cloud-dev) 
+Additionally, you must have secrets defined for the following:
 * JIRA hostname
 * JIRA username
 * JIRA access token
