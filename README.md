@@ -6,6 +6,10 @@ The service is subscribed to the following keptn events:
 
 - sh.keptn.events.evaluation-done
 
+## Keptn Compatability
+
+This service was tested for compatibility up through Keptn 0.5.1
+
 ## Installation
 
 To use this service, you must have a JIRA instance accessible from your Kubernetes cluster. One can apply for a JIRA developer instance directly via Atlassian here: [http://go.atlassian.com/cloud-dev](http://go.atlassian.com/cloud-dev) 
