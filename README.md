@@ -11,16 +11,17 @@ The service is subscribed to the following keptn events:
 # Gather JIRA Information
 You'll need the following information to use this plugin.
 
-1. JIRA hostname  (without trailing slash) such as `https://myusername.atlassian.net`
-1. JIRA username such as `me@example.com`
+1. JIRA Base URL (without trailing slash) eg. `https://abc123.atlassian.net`
+1. JIRA organization name (first portion of the above) eg. `abc123`
 1. JIRA API Token ([generate one here](https://id.atlassian.com/manage/api-tokens))
-1. JIRA Project Code. Take this from the URL. Eg. `PROJ` is the project code for `https://myusername.atlassian.net/projects/PROJ/issues`
+1. JIRA Project Key. Take this from the URL. Eg. `PROJ` is the project code for `https://myusername.atlassian.net/projects/PROJ/issues`
+1. JIRA Issue Type eg. Task, Bug, Epic etc. Defaults to `Task`.
 
 # Save JIRA Details as k8s Secret
 Paste your values into the command below (replacing `***`) and save the JIRA details into a secret called `jira-details` in the `keptn` namespace.
 
 ```
-kubectl -n keptn create secret generic jira-details --from-literal="jira-hostname=***" --from-literal="jira-username=***" --from-literal="jira-token=***" --from-literal="jira-project=***"
+kubectl -n keptn create secret generic jira-details --from-literal="jira-base-url=***" --from-literal="jira-organization=***" --from-literal="jira-api-token=***" --from-literal="jira-project-key=***" --from-literal="jira-issue-type=Task"
 ```
 
 Expected output:
@@ -30,10 +31,10 @@ secret/jira-details created
 ```
 
 # Install JIRA Service
-Clone this repository and apply the `jira-service.yaml` and `jira-distributor.yaml` file to install the service on to keptn.
+Install the service & distributor:
 
 ```
-kubectl apply -f ~/jira-service/jira-distributor.yaml -f ~/jira-service/jira-service.yaml
+kubectl apply -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-service.yaml -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-distributor.yaml
 ```
 
 Expected output:

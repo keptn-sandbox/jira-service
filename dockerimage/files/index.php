@@ -1,7 +1,7 @@
 <?php
 
-$jiraURL = getenv("JIRA_URL");
-$jiraUsername = getenv("JIRA_USERNAME");
+$jiraBaseURL = getenv("JIRA_BASE_URL");
+$jiraOrganization = getenv("JIRA_ORGANIZATION");
 $jiraAPIToken = getenv("JIRA_API_TOKEN");
 $jiraProjectKey = getenv("JIRA_PROJECT_KEY");
 $jiraIssueType = getenv("JIRA_ISSUE_TYPE");
@@ -9,9 +9,9 @@ $jiraIssueType = getenv("JIRA_ISSUE_TYPE");
 // Write the raw input to the log file...
 $logFile = fopen("logs/jiraService.log", "a") or die("Unable to open file!");
 
-if ($jiraURL == null || $jiraUsername == null || $jiraAPIToken == null || $jiraProjectKey == null || $jiraIssueType == null) {
-    fwrite($logFile, "Missing mandatory input parameters JIRA_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
-    exit("Missing mandatory input parameters JIRA_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
+if ($jiraBaseURL == null || $jiraOrganization == null || $jiraAPIToken == null || $jiraProjectKey == null || $jiraIssueType == null) {
+    fwrite($logFile, "Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_ORGANIZATION and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
+    exit("Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_ORGANIZATION and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
 }
 
 $entityBody = file_get_contents('php://input');
@@ -66,18 +66,18 @@ $jiraTicketObj->fields->description .= "Keptn Context: " . $cloudEvent->{'shkept
 
 $jiraJSON = json_encode($jiraTicketObj);
 
-$jiraURL = "$jiraURL/rest/api/2/issue";
+$jiraBaseURL = "$jiraBaseURL/rest/api/2/issue";
 
 /******************************
    POST DATA TO JIRA
 ******************************/
 
-fwrite($logFile,$jiraUsername . ':' . $jiraAPIToken);
+fwrite($logFile,$jiraOrganization . ':' . $jiraAPIToken);
 
 // Base64 encode the JIRA username and password
-$encodedKey = base64_encode($jiraUsername . ':' . $jiraAPIToken);
+$encodedKey = base64_encode($jiraOrganization . ':' . $jiraAPIToken);
 
-$ch = curl_init($jiraURL);
+$ch = curl_init($jiraBaseURL);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLINFO_HEADER_OUT, true);
 curl_setopt($ch, CURLOPT_POST, true);

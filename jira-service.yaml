@@ -21,31 +21,31 @@ spec:
         ports:
         - containerPort: 80
         env:
-        - name: JIRA_URL
+        - name: JIRA_BASE_URL
           valueFrom:
             secretKeyRef:
               name: jira-details
-              key: url
-        - name: JIRA_USERNAME
+              key: jira-base-url
+        - name: JIRA_ORGANIZATION
           valueFrom:
             secretKeyRef:
               name: jira-details
-              key: username
+              key: jira-organization
         - name: JIRA_API_TOKEN
           valueFrom:
             secretKeyRef:
               name: jira-details
-              key: api-token
+              key: jira-api-token
         - name: JIRA_PROJECT_KEY
           valueFrom:
             secretKeyRef:
               name: jira-details
-              key: project-key
+              key: jira-project-key
         - name: JIRA_ISSUE_TYPE
           valueFrom:
             secretKeyRef:
               name: jira-details
-              key: issue-type
+              key: jira-issue-type
 ---
 apiVersion: v1
 kind: Service
