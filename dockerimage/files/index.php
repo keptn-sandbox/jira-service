@@ -1,7 +1,7 @@
 <?php
 
 $jiraBaseURL = getenv("JIRA_BASE_URL");
-$jiraOrganization = getenv("JIRA_ORGANIZATION");
+$jiraUsername = getenv("JIRA_USERNAME");
 $jiraAPIToken = getenv("JIRA_API_TOKEN");
 $jiraProjectKey = getenv("JIRA_PROJECT_KEY");
 $jiraIssueType = getenv("JIRA_ISSUE_TYPE");
@@ -9,9 +9,9 @@ $jiraIssueType = getenv("JIRA_ISSUE_TYPE");
 // Write the raw input to the log file...
 $logFile = fopen("logs/jiraService.log", "a") or die("Unable to open file!");
 
-if ($jiraBaseURL == null || $jiraOrganization == null || $jiraAPIToken == null || $jiraProjectKey == null || $jiraIssueType == null) {
-    fwrite($logFile, "Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_ORGANIZATION and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
-    exit("Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_ORGANIZATION and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
+if ($jiraBaseURL == null || $jiraUsername == null || $jiraAPIToken == null || $jiraProjectKey == null || $jiraIssueType == null) {
+    fwrite($logFile, "Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
+    exit("Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
 }
 
 $entityBody = file_get_contents('php://input');
@@ -72,10 +72,8 @@ $jiraBaseURL = "$jiraBaseURL/rest/api/2/issue";
    POST DATA TO JIRA
 ******************************/
 
-fwrite($logFile,$jiraOrganization . ':' . $jiraAPIToken);
-
 // Base64 encode the JIRA username and password
-$encodedKey = base64_encode($jiraOrganization . ':' . $jiraAPIToken);
+$encodedKey = base64_encode($jiraUsername . ':' . $jiraAPIToken);
 
 $ch = curl_init($jiraBaseURL);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

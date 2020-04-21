@@ -26,11 +26,11 @@ spec:
             secretKeyRef:
               name: jira-details
               key: jira-base-url
-        - name: JIRA_ORGANIZATION
+        - name: JIRA_USERNAME
           valueFrom:
             secretKeyRef:
               name: jira-details
-              key: jira-organization
+              key: jira-username
         - name: JIRA_API_TOKEN
           valueFrom:
             secretKeyRef:

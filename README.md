@@ -12,7 +12,7 @@ The service is subscribed to the following keptn events:
 You'll need the following information to use this plugin.
 
 1. JIRA Base URL (without trailing slash) eg. `https://abc123.atlassian.net`
-1. JIRA organization name (first portion of the above) eg. `abc123`
+1. JIRA Username eg. `joe.smith@example.com`
 1. JIRA API Token ([generate one here](https://id.atlassian.com/manage/api-tokens))
 1. JIRA Project Key. Take this from the URL. Eg. `PROJ` is the project code for `https://abc123.atlassian.net/projects/PROJ/issues`
 1. JIRA Issue Type eg. Task, Bug, Epic etc. Defaults to `Task`.
@@ -21,7 +21,7 @@ You'll need the following information to use this plugin.
 Paste your values into the command below (replacing `***`) and save the JIRA details into a secret called `jira-details` in the `keptn` namespace.
 
 ```
-kubectl -n keptn create secret generic jira-details --from-literal="jira-base-url=***" --from-literal="jira-organization=***" --from-literal="jira-api-token=***" --from-literal="jira-project-key=***" --from-literal="jira-issue-type=Task"
+kubectl -n keptn create secret generic jira-details --from-literal="jira-base-url=***" --from-literal="jira-username=***" --from-literal="jira-api-token=***" --from-literal="jira-project-key=***" --from-literal="jira-issue-type=Task"
 ```
 
 Expected output:
