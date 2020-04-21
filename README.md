@@ -14,7 +14,7 @@ You'll need the following information to use this plugin.
 1. JIRA Base URL (without trailing slash) eg. `https://abc123.atlassian.net`
 1. JIRA organization name (first portion of the above) eg. `abc123`
 1. JIRA API Token ([generate one here](https://id.atlassian.com/manage/api-tokens))
-1. JIRA Project Key. Take this from the URL. Eg. `PROJ` is the project code for `https://myusername.atlassian.net/projects/PROJ/issues`
+1. JIRA Project Key. Take this from the URL. Eg. `PROJ` is the project code for `https://abc123.atlassian.net/projects/PROJ/issues`
 1. JIRA Issue Type eg. Task, Bug, Epic etc. Defaults to `Task`.
 
 # Save JIRA Details as k8s Secret
