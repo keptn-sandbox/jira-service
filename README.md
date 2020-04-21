@@ -45,11 +45,26 @@ deployment.apps/jira-service created
 service/jira-service created
 ```
 
+# Usage / Testing
+Ask Keptn to start an evaluation:
+```
+keptn send event start-evaluation --project=* --stage=* --service=* --timeframe=2m
+```
+
 # Debugging
 A debug log is available in the `jira-service` pod at `/var/www/html/logs/jiraService.log`
 
 ```
 kubectl exec -itn keptn jira-service-*-* cat /var/www/html/logs/jiraService.log
+```
+
+# Deleting This Service
+
+Delete the `jira-details` secret, the distributor and service files:
+
+```
+kubectl delete secret -n keptn jira-details
+kubectl delete -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-service.yaml -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-distributor.yaml
 ```
 
 # Compatibility Matrix
