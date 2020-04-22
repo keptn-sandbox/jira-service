@@ -84,6 +84,7 @@ curl_setopt($ch, CURLOPT_POSTFIELDS, $jiraJSON);
 // Set HTTP Header for POST request
 curl_setopt($ch, CURLOPT_HTTPHEADER, array(
   'Content-Type: application/json',
+  'User-Agent': 'keptn-jira-service/v1',
   "Authorization: Basic $encodedKey"
 ));
 
