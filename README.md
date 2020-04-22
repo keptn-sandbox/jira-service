@@ -1,10 +1,11 @@
 # JIRA Service
 
-This service creates JIRA issues when Keptn performs a quality gate evaluation.
+This service creates JIRA issues when Keptn performs a quality gate evaluation or a problem is raised.
 
 The service is subscribed to the following keptn events:
 
 * `sh.keptn.events.evaluation-done`
+* `sh.keptn.event.problem.open`
 
 ![screenshot](assets/jira-service-1.png)
 
@@ -21,7 +22,7 @@ You'll need the following information to use this plugin.
 Paste your values into the command below (replacing `***`) and save the JIRA details into a secret called `jira-details` in the `keptn` namespace.
 
 ```
-kubectl -n keptn create secret generic jira-details --from-literal="jira-base-url=***" --from-literal="jira-username=***" --from-literal="jira-api-token=***" --from-literal="jira-project-key=***" --from-literal="jira-issue-type=Task"
+kubectl -n keptn create secret generic jira-details --from-literal="jira-base-url=***" --from-literal="jira-username=***" --from-literal="jira-api-token=***" --from-literal="jira-project-key=***" --from-literal="jira-issue-type=Task" --from-literal="jira-create-ticket-for-problems=true" --from-literal="jira-create-ticket-for-evaluations=true"
 ```
 
 Expected output:

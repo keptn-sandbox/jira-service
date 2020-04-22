@@ -46,6 +46,16 @@ spec:
             secretKeyRef:
               name: jira-details
               key: jira-issue-type
+        - name: JIRA_TICKET_FOR_PROBLEMS
+          valueFrom:
+            secretKeyRef:
+              name: jira-details
+              key: jira-create-ticket-for-problems
+        - name: JIRA_TICKET_FOR_EVALUATIONS
+          valueFrom:
+            secretKeyRef:
+              name: jira-details
+              key: jira-create-ticket-for-evaluations
 ---
 apiVersion: v1
 kind: Service
