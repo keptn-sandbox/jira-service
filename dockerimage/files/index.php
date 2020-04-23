@@ -86,7 +86,7 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
 if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $eventState == "OPEN") {
     
     // Create a JIRA ticket.
-    fwrite($logFile, "Got a problem opening event. Creating JIRA ticket \n");
+    fwrite($logFile, "Got a problem opening event. Creating JIRA ticket.\n");
     
     $eventProblemTitle = $cloudEvent->{'data'}->{'ProblemTitle'};
     $eventImpactedEntity = $cloudEvent->{'data'}->{'ImpactedEntity'};
@@ -129,7 +129,6 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     else {
       foreach ($eventProblemDetails as $key => $value) {
         if (is_bool($value)) {
-          fwrite($logFile, "Value for $key is a boolean. Transforming to string.\n");
           $value = var_export($value, true); // Transform boolean to string.
         }
         // Ignore certain fields.
