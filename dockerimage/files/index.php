@@ -76,7 +76,7 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     // Submit the POST request
     $result = curl_exec($ch);
 
-    fwrite($logFile,"Result: $result");
+    fwrite($logFile,"Result: $result\n");
     // Close cURL session handle
     curl_close($ch);
 }
@@ -90,6 +90,8 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     // Create a JIRA ticket.
     fwrite($logFile, "Got a problem opening event. Creating JIRA ticket \n");
     
+    fwrite($logFile, "$entityBody \n");
+    
     $eventProblemTitle = $cloudEvent->{'data'}->{'ProblemTitle'};
     $eventImpactedEntity = $cloudEvent->{'data'}->{'ImpactedEntity'};
     $keptnProject = $cloudEvent->{'data'}->{'project'};
@@ -97,12 +99,20 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     $keptnStage = $cloudEvent->{'data'}->{'stage'};
     $keptnContext = $cloudEvent->{'shkeptncontext'};
     $eventProblemDetails = $cloudEvent->{'data'}->{'ProblemDetails'};
+    fwrite($logFile, serialize($eventProblemDetails). "\n");
     $eventPID = $cloudEvent->{'data'}->{'PID'};
+
     $eventProblemID = $cloudEvent->{'data'}->{'ProblemID'};
     $eventTime = $cloudEvent->{'time'};
-    $eventTags = $cloudEvent->{'data'}->{'Tags'};
-    // Build event tags array by splitting on comma
-    $eventTagsArray = explode(',', $eventTags);
+    $eventTags = "";
+    $eventTagsArray = array();
+
+    if ($cloudEvent->{'data'}->{'Tags'} != null)  {
+      // Build event tags array by splitting on comma
+      $eventTagsArray = explode(',', $eventTags);
+    }
+    
+    fwrite($logFile,"Finished processing problem inputs. Creating JIRA JSON now.\n");
     
     // Build JSON for JIRA
     $jiraTicketObj = new stdClass();
@@ -110,7 +120,7 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     $jiraTicketObj->fields->summary = "PROBLEM: $eventProblemTitle";
     $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
-
+    
     $jiraTicketObj->fields->description .= "h2. Problem Summary\n";
     $jiraTicketObj->fields->description .= "Problem Title: $eventProblemTitle\n";
     $jiraTicketObj->fields->description .= "Impacted Entity: $eventImpactedEntity\n";
@@ -119,11 +129,24 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     if ($keptnStage != null) $jiraTicketObj->fields->description .= "Stage: $keptnStage\n";
     
     $jiraTicketObj->fields->description .= "h2. Problem Details\n";
-    $jiraTicketObj->fields->description .= "$eventProblemDetails \n";
     
+    if (is_string($eventProblemDetails)) $jiraTicketObj->fields->description .= "$eventProblemDetails \n";
+    else {
+      foreach ($eventProblemDetails as $key => $value) {
+        if (is_bool($value)) {
+          fwrite($logFile, "Value for $key is a boolean. Transforming to string.\n");
+          $value = var_export($value, true); // Transform boolean to string.
+        }
+        // Ignore certain fields.
+        $ignore_fields = array("startTime", "endTime", "status", "displayName");
+        if (in_array($key, $ignore_fields)) continue;
+        
+        $jiraTicketObj->fields->description .= "$key: $value\n";
+      }
+    }
+   
     // If there are tags, pass as a table.
     if (sizeof($eventTagsArray) > 1) {
-        
         $jiraTicketObj->fields->description .= "h2. Tags\n";
         $jiraTicketObj->fields->description .= "{noformat}";
         
@@ -132,7 +155,7 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
         }
         $jiraTicketObj->fields->description .= "{noformat}\n";
     }
-
+    
     $jiraTicketObj->fields->description .= "h2. Additional Information\n";
     $jiraTicketObj->fields->description .= "Problem ID: $eventProblemID\n";
     $jiraTicketObj->fields->description .= "PID: $eventPID\n";
@@ -146,7 +169,9 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
       $dynatraceLink = "https://$dynatraceTenant/#problems/problemdetails;pid=$eventPID";
       $jiraTicketObj->fields->description .= "Dynatrace Problem Ticket: $dynatraceLink";
     }
-
+    
+    fwrite($logFile, "Completed Event processing. Creating ticket now. \n");
+    
     // POST DATA TO JIRA
     createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $logFile);
 }
