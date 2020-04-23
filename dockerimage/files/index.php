@@ -159,7 +159,7 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     
     // Modify JIRA ticket.
     fwrite($logFile, "Got a problem closed event. NOT YET IMPLEMENTED. \n");
-    
+    fwrite($logFile, "$entityBody \n");
     // NOT YET IMPLEMENTED
     // Problem is closing. Process the JIRA ticket.
 }
