@@ -72,7 +72,7 @@ kubectl delete -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-
 
 | Keptn Version    | JIRA Version / API Version |
 |:----------------:|:----------------------:|
-|     0.6.1        |            Cloud / v2          |
+|     0.6.1        |            Cloud (Classic and NextGen) / v2          |
 
 # Contributions, Enhancements, Issues or Questions
 Please raise a GitHub issue or join the [Keptn Slack channel](https://join.slack.com/t/keptn/shared_invite/enQtNTUxMTQ1MzgzMzUxLWMzNmM1NDc4MmE0MmQ0MDgwYzMzMDc4NjM5ODk0ZmFjNTE2YzlkMGE4NGU5MWUxODY1NTBjNjNmNmI1NWQ1NGY).
