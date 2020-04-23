@@ -56,6 +56,12 @@ spec:
             secretKeyRef:
               name: jira-details
               key: jira-create-ticket-for-evaluations
+        - name: DT_TENANT
+          valueFrom:
+            secretKeyRef:
+              name: dynatrace
+              key: DT_TENANT
+              optional: true
 ---
 apiVersion: v1
 kind: Service

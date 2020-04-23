@@ -9,9 +9,9 @@ $jiraAPIToken = getenv("JIRA_API_TOKEN");
 $jiraProjectKey = getenv("JIRA_PROJECT_KEY");
 $jiraIssueType = getenv("JIRA_ISSUE_TYPE");
 $jiraTicketForProblems = getenv("JIRA_TICKET_FOR_PROBLEMS") === 'true'? true : false;
-fwrite($logFile,"Tickets for Problems: $jiraTicketForProblems \n");
 $jiraTicketForEvaluations = getenv("JIRA_TICKET_FOR_EVALUATIONS") === 'true'? true : false;
-fwrite($logFile,"Tickets for Evaluations: $jiraTicketForEvaluations \n");
+$dynatraceTenant = getenv("DT_TENANT");
+
 
 if ($jiraBaseURL == null || $jiraUsername == null || $jiraAPIToken == null || $jiraProjectKey == null || $jiraIssueType == null) {
     fwrite($logFile, "Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
@@ -111,36 +111,41 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
 
-    $jiraTicketObj->fields->description .= "h1. Problem Summary\n\n";
+    $jiraTicketObj->fields->description .= "h2. Problem Summary\n";
     $jiraTicketObj->fields->description .= "Problem Title: $eventProblemTitle\n";
     $jiraTicketObj->fields->description .= "Impacted Entity: $eventImpactedEntity\n";
     if ($keptnProject != null) $jiraTicketObj->fields->description .= "Project: $keptnProject\n";
     if ($keptnService != null) $jiraTicketObj->fields->description .= "Service: $keptnService\n";
     if ($keptnStage != null) $jiraTicketObj->fields->description .= "Stage: $keptnStage\n";
     
-    $jiraTicketObj->fields->description .= "\n----\n\n";
-    $jiraTicketObj->fields->description .= "h1. Problem Details\n\n";
-    $jiraTicketObj->fields->description .= "$eventProblemDetails \n\n";
+    $jiraTicketObj->fields->description .= "h2. Problem Details\n";
+    $jiraTicketObj->fields->description .= "$eventProblemDetails \n";
     
     // If there are tags, pass as a table.
     if (sizeof($eventTagsArray) > 1) {
         
-        $jiraTicketObj->fields->description .= "\n----\n\n";
-        $jiraTicketObj->fields->description .= "h1. Tags\n\n";
+        $jiraTicketObj->fields->description .= "h2. Tags\n";
         $jiraTicketObj->fields->description .= "{noformat}";
         
         foreach ($eventTagsArray as $tag) {
             $jiraTicketObj->fields->description .= "$tag\n";
         }
-        $jiraTicketObj->fields->description .= "{noformat}";
+        $jiraTicketObj->fields->description .= "{noformat}\n";
     }
 
-    $jiraTicketObj->fields->description .= "\n----\n\n";
-    $jiraTicketObj->fields->description .= "h1. Additional Information\n\n";
+    $jiraTicketObj->fields->description .= "h2. Additional Information\n";
     $jiraTicketObj->fields->description .= "Problem ID: $eventProblemID\n";
     $jiraTicketObj->fields->description .= "PID: $eventPID\n";
     $jiraTicketObj->fields->description .= "Keptn Context: $keptnContext\n";
     $jiraTicketObj->fields->description .= "Event Time: $eventTime\n";
+    
+    /* If a dynatrace is used, add a link to the problem ticket.
+     * The official JIRA plugin uses this for all sorts of extended functionality
+     */
+    if ($dynatraceTenant) {
+      $dynatraceLink = "https://$dynatraceTenant/#problems/problemdetails;pid=$eventPID";
+      $jiraTicketObj->fields->description .= "Dynatrace Problem Ticket: $dynatraceLink";
+    }
 
     // POST DATA TO JIRA
     createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $logFile);
@@ -157,11 +162,6 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     
     // NOT YET IMPLEMENTED
     // Problem is closing. Process the JIRA ticket.
-    
-    /* Logic:
-     * Get the PID and lookup an existing JIRA ticket for that PID.
-     * Push a comment and set the ticket status to Done now that the problem is closed.
-     */
 }
 
 /*************************************************
@@ -187,24 +187,22 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
 
-    $jiraTicketObj->fields->description .= "h1. Test Details\n\n";
+    $jiraTicketObj->fields->description .= "h2. Test Details\n";
     $jiraTicketObj->fields->description .= "Project: " . $keptnProject . "\n";
     $jiraTicketObj->fields->description .= "Service: " . $keptnService . "\n";
     $jiraTicketObj->fields->description .= "Stage: " . $keptnStage . "\n";
 
     // For loop through indicatorResults
-    $jiraTicketObj->fields->description .= "h1. SLI Results \n\n";
+    $jiraTicketObj->fields->description .= "h2. SLI Results\n";
     foreach ($cloudEvent->{'data'}->{'evaluationdetails'}->{'indicatorResults'} as &$value) {
       $jiraTicketObj->fields->description .= "|| *Metric* || *Status* || *Value* ||\n";
       $jiraTicketObj->fields->description .= "| " . $value->{'value'}->{'metric'} . " | " . $value->{'status'} . " | " . $value->{'value'}->{'value'} ." |\n\n";
-      $jiraTicketObj->fields->description .= "h1. Targets \n\n";
+      $jiraTicketObj->fields->description .= "h2. Targets \n\n";
       $jiraTicketObj->fields->description .= "|| *Criteria* || *Violated* ||\n";
   
       foreach ($value->{'targets'} as &$target) {
         $jiraTicketObj->fields->description .= "| " . $target->{'criteria'} . " | " . ($target->{'violated'} ? 'true' : 'false') ." |\n";
       }
-  
-      $jiraTicketObj->fields->description .= "\n\n----\n\n";
   
       if ($value->{'value'}->{'message'} != "") {
         $jiraTicketObj->fields->description .= "Message: " . $value->{'value'}->{'message'} . "\n\n";
