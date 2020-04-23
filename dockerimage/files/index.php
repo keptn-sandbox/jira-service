@@ -43,9 +43,7 @@ fwrite($logFile, "Event Type: $eventType \n");
 $eventState = "";
 if ($eventType == "sh.keptn.event.problem.open") $eventState = $cloudEvent->{'data'}->{'State'};
 
-
-fwrite($logFile, "Got Event Type: $eventType \n");
-fwrite($logFile, "Event State (this can be empty, CLOSED or OPEN): $eventState \n");
+if ($eventType == "sh.keptn.event.problem.open") fwrite($logFile, "Problem Event State (this can be CLOSED or OPEN): $eventState\n");
 
 /************************************************************
    INPUT PARAM PROCESSING END. START FUNCTION DEFINITIONS.
@@ -90,8 +88,6 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     // Create a JIRA ticket.
     fwrite($logFile, "Got a problem opening event. Creating JIRA ticket \n");
     
-    fwrite($logFile, "$entityBody \n");
-    
     $eventProblemTitle = $cloudEvent->{'data'}->{'ProblemTitle'};
     $eventImpactedEntity = $cloudEvent->{'data'}->{'ImpactedEntity'};
     $keptnProject = $cloudEvent->{'data'}->{'project'};
@@ -99,7 +95,6 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     $keptnStage = $cloudEvent->{'data'}->{'stage'};
     $keptnContext = $cloudEvent->{'shkeptncontext'};
     $eventProblemDetails = $cloudEvent->{'data'}->{'ProblemDetails'};
-    fwrite($logFile, serialize($eventProblemDetails). "\n");
     $eventPID = $cloudEvent->{'data'}->{'PID'};
 
     $eventProblemID = $cloudEvent->{'data'}->{'ProblemID'};
@@ -205,6 +200,8 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     $keptnService = $cloudEvent->{'data'}->{'service'};
     $keptnStage = $cloudEvent->{'data'}->{'stage'};
 
+    fwrite($logFile,"Finished processing problem inputs. Creating JIRA JSON now.\n");
+    
     // Build JSON for JIRA
     $jiraTicketObj = new stdClass();
     $jiraTicketObj->fields->project->key = $jiraProjectKey;
@@ -235,6 +232,8 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     }
 
     $jiraTicketObj->fields->description .= "Keptn Context: " . $cloudEvent->{'shkeptncontext'};
+    
+    fwrite($logFile, "Completed Event processing. Creating ticket now. \n");
     
     // POST DATA TO JIRA
     createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $logFile);
