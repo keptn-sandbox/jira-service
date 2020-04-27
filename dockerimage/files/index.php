@@ -136,6 +136,25 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
       array_push($labels, "keptn_stage:$keptnStage");
     }
     
+    // "labels" can be passed via JSON. Add all labels as jira labels
+    $labelsFromJSON = $cloudEvent->{'data'}->{'labels'};
+    if ($labelsFromJSON != null) {
+      foreach ($labelsFromJSON as $key => $value) {
+        if (is_bool($value)) $value = var_export($value, true); // Transform boolean to string.
+        // JIRA doesn't accept whitespace in labels. Replace whitespace with dashes
+        $key = str_replace(' ', '-', $key);
+        $value = str_replace(' ', '-', $value);
+        
+        array_push($labels,"$key:$value");
+      
+        // Special processing for a label of "jira-issue" key.
+        // Link issues with 'is caused by' if a parent issue ID exists
+        // TODO
+      }
+    }
+    
+    
+    // Add labels to JIRA Object
     if (count($labels) > 0) {
       $jiraTicketObj->fields->labels = $labels;
     }
@@ -242,6 +261,25 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
       array_push($labels, "keptn_stage:$keptnStage");
     }
     
+    // "labels" can be passed via JSON. Add all labels as jira labels
+    $labelsFromJSON = $cloudEvent->{'data'}->{'labels'};
+    if ($labelsFromJSON != null) {
+      foreach ($labelsFromJSON as $key => $value) {
+        if (is_bool($value)) $value = var_export($value, true); // Transform boolean to string.
+        // JIRA doesn't accept whitespace in labels. Replace whitespace with dashes
+        $key = str_replace(' ', '-', $key);
+        $value = str_replace(' ', '-', $value);
+        array_push($labels,"$key:$value");
+      
+        // Special processing for a label of "jira-issue" key.
+        // Link issues with 'is caused by' if a parent issue ID exists
+        // TODO
+      }
+    }
+    
+    // Link issues with 'is caused by' if a parent issue ID exists
+    
+    // Add labels to JIRA Object
     if (count($labels) > 0) {
       $jiraTicketObj->fields->labels = $labels;
     }
