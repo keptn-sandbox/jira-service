@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: jira-service
-        image: adamgardnerdt/keptn-jira-service:v1
+        image: keptnsandbox/jira-service:0.1
         imagePullPolicy: Always
         ports:
         - containerPort: 80
