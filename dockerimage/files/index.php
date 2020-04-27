@@ -240,7 +240,7 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     // Build JSON for JIRA
     $jiraTicketObj = new stdClass();
     $jiraTicketObj->fields->project->key = $jiraProjectKey;
-    $jiraTicketObj->fields->summary = "Keptn Evaluation Result: $result";
+    $jiraTicketObj->fields->summary = "[EVALUATION] $keptnProject - $keptnService - $keptnStage Result: $result";
     $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
     
@@ -284,14 +284,12 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
       $jiraTicketObj->fields->labels = $labels;
     }
     
-    $jiraTicketObj->fields->description .= "h2. Test Details\n";
-
     // For loop through indicatorResults
-    $jiraTicketObj->fields->description .= "h2. SLI Results\n";
+    $jiraTicketObj->fields->description .= "*SLI Results*\n";
     foreach ($cloudEvent->{'data'}->{'evaluationdetails'}->{'indicatorResults'} as &$value) {
       $jiraTicketObj->fields->description .= "|| *Metric* || *Status* || *Value* ||\n";
       $jiraTicketObj->fields->description .= "| " . $value->{'value'}->{'metric'} . " | " . $value->{'status'} . " | " . $value->{'value'}->{'value'} ." |\n\n";
-      $jiraTicketObj->fields->description .= "h2. Targets \n\n";
+      $jiraTicketObj->fields->description .= "*Targets*\n\n";
       $jiraTicketObj->fields->description .= "|| *Criteria* || *Violated* ||\n";
   
       foreach ($value->{'targets'} as &$target) {
