@@ -112,26 +112,25 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     // Build JSON for JIRA
     $jiraTicketObj = new stdClass();
     $jiraTicketObj->fields->project->key = $jiraProjectKey;
-    $jiraTicketObj->fields->summary = "PROBLEM: $eventProblemTitle";
+    $jiraTicketObj->fields->summary = "[PROBLEM] $eventProblemTitle";
     $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
     
-    $jiraTicketObj->fields->description .= "h2. Problem Summary\n";
-    $jiraTicketObj->fields->description .= "Problem Title: $eventProblemTitle\n";
-    $jiraTicketObj->fields->description .= "Impacted Entity: $eventImpactedEntity\n";
+    $jiraTicketObj->fields->description .= "$eventImpactedEntity\n\n";
 
     // Add keptn_* labels
     $labels = array();
     if ($keptnProject != null) {
+      $jiraTicketObj->fields->description .= "*Keptn Details*\n";
       $jiraTicketObj->fields->description .= "Project: $keptnProject\n";
       array_push($labels, "keptn_project:$keptnProject");
     }
-    // Add keptn_project label, if present to the ticket body and as a JIRA label.
+    // Add keptn_service label, if present, to the ticket body and as a JIRA label.
     if ($keptnService != null) {
       $jiraTicketObj->fields->description .= "Service: $keptnService\n";
       array_push($labels, "keptn_service:$keptnService");
     }
-    // Add keptn_project label, if present to the ticket body and as a JIRA label.
+    // Add keptn_stage label, if present to the ticket body and as a JIRA label.
     if ($keptnStage != null) {
       $jiraTicketObj->fields->description .= "Stage: $keptnStage\n";
       array_push($labels, "keptn_stage:$keptnStage");
@@ -141,8 +140,8 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
       $jiraTicketObj->fields->labels = $labels;
     }
     
-    $jiraTicketObj->fields->description .= "h2. Problem Details\n";
-    
+    // Print problem details
+    $jiraTicketObj->fields->description .= "\n*Problem Details*\n";
     if (is_string($eventProblemDetails)) $jiraTicketObj->fields->description .= "$eventProblemDetails \n";
     else {
       foreach ($eventProblemDetails as $key => $value) {
@@ -157,9 +156,9 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
       }
     }
    
-    // If there are tags, pass as a table.
+    // If there are dynatrace tags, pass as a table.
     if (sizeof($eventTagsArray) > 1) {
-        $jiraTicketObj->fields->description .= "h2. Tags\n";
+        $jiraTicketObj->fields->description .= "*Tags*\n";
         $jiraTicketObj->fields->description .= "{noformat}";
         
         foreach ($eventTagsArray as $tag) {
@@ -168,7 +167,7 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
         $jiraTicketObj->fields->description .= "{noformat}\n";
     }
     
-    $jiraTicketObj->fields->description .= "h2. Additional Information\n";
+    $jiraTicketObj->fields->description .= "\n*Additional Information*\n";
     $jiraTicketObj->fields->description .= "Problem ID: $eventProblemID\n";
     $jiraTicketObj->fields->description .= "PID: $eventPID\n";
     $jiraTicketObj->fields->description .= "Keptn Context: $keptnContext\n";
@@ -179,7 +178,7 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
      */
     if ($dynatraceTenant) {
       $dynatraceLink = "https://$dynatraceTenant/#problems/problemdetails;pid=$eventPID";
-      $jiraTicketObj->fields->description .= "Dynatrace Problem Ticket: $dynatraceLink";
+      $jiraTicketObj->fields->description .= "Dynatrace: $dynatraceLink";
     }
     
     fwrite($logFile, "Completed Event processing. Creating ticket now. \n");
