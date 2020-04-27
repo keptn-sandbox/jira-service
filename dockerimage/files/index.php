@@ -229,6 +229,7 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     fwrite($logFile, "Got an evaluation-done event. Create a JIRA ticket. \n");
     
     // Transform Keptn Evaluation Result to uppercase
+    $resultLowercase = $cloudEvent->{'data'}->{'result'};
     $result = strtoupper($cloudEvent->{'data'}->{'result'});
 
     $keptnProject = $cloudEvent->{'data'}->{'project'};
@@ -261,6 +262,9 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
       array_push($labels, "keptn_stage:$keptnStage");
     }
     
+    // Create keptn_result label to show "pass", "warning" or "fail" as a label.
+    array_push($labels,"keptn_result:$resultLowercase");
+    
     // "labels" can be passed via JSON. Add all labels as jira labels
     $labelsFromJSON = $cloudEvent->{'data'}->{'labels'};
     if ($labelsFromJSON != null) {
@@ -276,8 +280,6 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
         // TODO
       }
     }
-    
-    // Link issues with 'is caused by' if a parent issue ID exists
     
     // Add labels to JIRA Object
     if (count($labels) > 0) {
