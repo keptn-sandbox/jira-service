@@ -12,7 +12,6 @@ $jiraTicketForProblems = getenv("JIRA_TICKET_FOR_PROBLEMS") === 'true'? true : f
 $jiraTicketForEvaluations = getenv("JIRA_TICKET_FOR_EVALUATIONS") === 'true'? true : false;
 $dynatraceTenant = getenv("DT_TENANT");
 
-
 if ($jiraBaseURL == null || $jiraUsername == null || $jiraAPIToken == null || $jiraProjectKey == null || $jiraIssueType == null) {
     fwrite($logFile, "Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
     exit("Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
@@ -115,7 +114,6 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     $jiraTicketObj->fields->summary = "[PROBLEM] $eventProblemTitle";
     $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
-    
     $jiraTicketObj->fields->description .= "$eventImpactedEntity\n\n";
 
     // Add keptn_* labels
@@ -199,9 +197,9 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
       $dynatraceLink = "https://$dynatraceTenant/#problems/problemdetails;pid=$eventPID";
       $jiraTicketObj->fields->description .= "Dynatrace: $dynatraceLink";
     }
-    
+
     fwrite($logFile, "Completed Event processing. Creating ticket now. \n");
-    
+
     // POST DATA TO JIRA
     createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $logFile);
 }
@@ -235,6 +233,7 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     $keptnProject = $cloudEvent->{'data'}->{'project'};
     $keptnService = $cloudEvent->{'data'}->{'service'};
     $keptnStage = $cloudEvent->{'data'}->{'stage'};
+    $keptnContext = $cloudEvent->{'shkeptncontext'};
 
     fwrite($logFile,"Finished processing problem inputs. Creating JIRA JSON now.\n");
     
@@ -247,20 +246,13 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     
     // Add keptn_* labels
     $labels = array();
-    if ($keptnProject != null) {
-      $jiraTicketObj->fields->description .= "Project: $keptnProject\n";
-      array_push($labels, "keptn_project:$keptnProject");
-    }
+    if ($keptnProject != null) array_push($labels, "keptn_project:$keptnProject");
+    
     // Add keptn_project label, if present to the ticket body and as a JIRA label.
-    if ($keptnService != null) {
-      $jiraTicketObj->fields->description .= "Service: $keptnService\n";
-      array_push($labels, "keptn_service:$keptnService");
-    }
+    if ($keptnService != null) array_push($labels, "keptn_service:$keptnService");
+    
     // Add keptn_project label, if present to the ticket body and as a JIRA label.
-    if ($keptnStage != null) {
-      $jiraTicketObj->fields->description .= "Stage: $keptnStage\n";
-      array_push($labels, "keptn_stage:$keptnStage");
-    }
+    if ($keptnStage != null) array_push($labels, "keptn_stage:$keptnStage");
     
     // Create keptn_result label to show "pass", "warning" or "fail" as a label.
     array_push($labels,"keptn_result:$resultLowercase");
@@ -303,7 +295,7 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
       }
     }
 
-    $jiraTicketObj->fields->description .= "Keptn Context: " . $cloudEvent->{'shkeptncontext'};
+    $jiraTicketObj->fields->description .= "Keptn Context: $keptnContext";
     
     fwrite($logFile, "Completed Event processing. Creating ticket now. \n");
     
