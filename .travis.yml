@@ -28,7 +28,7 @@ before_install:
 #- ./writeManifest.sh
 #- cat MANIFEST
 # uncomment certain lines from Dockerfile that are for travis builds only
-- sed -i '/#travis-uncomment/s/^#travis-uncomment //g' Dockerfile
+- sed -i '/#travis-uncomment/s/^#travis-uncomment //g' ./dockerimage/Dockerfile
 
 jobs:
   include:
