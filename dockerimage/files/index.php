@@ -119,9 +119,27 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     $jiraTicketObj->fields->description .= "h2. Problem Summary\n";
     $jiraTicketObj->fields->description .= "Problem Title: $eventProblemTitle\n";
     $jiraTicketObj->fields->description .= "Impacted Entity: $eventImpactedEntity\n";
-    if ($keptnProject != null) $jiraTicketObj->fields->description .= "Project: $keptnProject\n";
-    if ($keptnService != null) $jiraTicketObj->fields->description .= "Service: $keptnService\n";
-    if ($keptnStage != null) $jiraTicketObj->fields->description .= "Stage: $keptnStage\n";
+
+    // Add keptn_* labels
+    $labels = array();
+    if ($keptnProject != null) {
+      $jiraTicketObj->fields->description .= "Project: $keptnProject\n";
+      array_push($labels, "keptn_project:$keptnProject");
+    }
+    // Add keptn_project label, if present to the ticket body and as a JIRA label.
+    if ($keptnService != null) {
+      $jiraTicketObj->fields->description .= "Service: $keptnService\n";
+      array_push($labels, "keptn_service:$keptnService");
+    }
+    // Add keptn_project label, if present to the ticket body and as a JIRA label.
+    if ($keptnStage != null) {
+      $jiraTicketObj->fields->description .= "Stage: $keptnStage\n";
+      array_push($labels, "keptn_stage:$keptnStage");
+    }
+    
+    if (count($labels) > 0) {
+      $jiraTicketObj->fields->labels = $labels;
+    }
     
     $jiraTicketObj->fields->description .= "h2. Problem Details\n";
     
@@ -207,11 +225,29 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     $jiraTicketObj->fields->summary = "Keptn Evaluation Result: $result";
     $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
-
+    
+    // Add keptn_* labels
+    $labels = array();
+    if ($keptnProject != null) {
+      $jiraTicketObj->fields->description .= "Project: $keptnProject\n";
+      array_push($labels, "keptn_project:$keptnProject");
+    }
+    // Add keptn_project label, if present to the ticket body and as a JIRA label.
+    if ($keptnService != null) {
+      $jiraTicketObj->fields->description .= "Service: $keptnService\n";
+      array_push($labels, "keptn_service:$keptnService");
+    }
+    // Add keptn_project label, if present to the ticket body and as a JIRA label.
+    if ($keptnStage != null) {
+      $jiraTicketObj->fields->description .= "Stage: $keptnStage\n";
+      array_push($labels, "keptn_stage:$keptnStage");
+    }
+    
+    if (count($labels) > 0) {
+      $jiraTicketObj->fields->labels = $labels;
+    }
+    
     $jiraTicketObj->fields->description .= "h2. Test Details\n";
-    $jiraTicketObj->fields->description .= "Project: " . $keptnProject . "\n";
-    $jiraTicketObj->fields->description .= "Service: " . $keptnService . "\n";
-    $jiraTicketObj->fields->description .= "Stage: " . $keptnStage . "\n";
 
     // For loop through indicatorResults
     $jiraTicketObj->fields->description .= "h2. SLI Results\n";
