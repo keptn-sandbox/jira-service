@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,33 +16,52 @@ spec:
     spec:
       containers:
       - name: jira-service
-        image: mvilliger/jira-service:0.2
+        image: keptnsandbox/jira-service:0.1
+        imagePullPolicy: Always
         ports:
-        - containerPort: 8080
-        resources:
-          requests:
-            memory: "32Mi"
-            cpu: "50m"
-          limits:
-            memory: "128Mi"
-            cpu: "500m"
+        - containerPort: 80
         env:
-        - name: JIRA_HOSTNAME
+        - name: JIRA_BASE_URL
           valueFrom:
             secretKeyRef:
-                name: jira-service
-                key: jira-hostname
+              name: jira-details
+              key: jira-base-url
         - name: JIRA_USERNAME
           valueFrom:
             secretKeyRef:
-                name: jira-service
-                key: jira-username
-        - name: JIRA_TOKEN
+              name: jira-details
+              key: jira-username
+        - name: JIRA_API_TOKEN
           valueFrom:
             secretKeyRef:
-                name: jira-service
-                key: jira-token
-
+              name: jira-details
+              key: jira-api-token
+        - name: JIRA_PROJECT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jira-details
+              key: jira-project-key
+        - name: JIRA_ISSUE_TYPE
+          valueFrom:
+            secretKeyRef:
+              name: jira-details
+              key: jira-issue-type
+        - name: JIRA_TICKET_FOR_PROBLEMS
+          valueFrom:
+            secretKeyRef:
+              name: jira-details
+              key: jira-create-ticket-for-problems
+        - name: JIRA_TICKET_FOR_EVALUATIONS
+          valueFrom:
+            secretKeyRef:
+              name: jira-details
+              key: jira-create-ticket-for-evaluations
+        - name: DT_TENANT
+          valueFrom:
+            secretKeyRef:
+              name: dynatrace
+              key: DT_TENANT
+              optional: true
 ---
 apiVersion: v1
 kind: Service
@@ -52,7 +72,7 @@ metadata:
     run: jira-service
 spec:
   ports:
-  - port: 8080
+  - port: 80
     protocol: TCP
   selector:
     run: jira-service

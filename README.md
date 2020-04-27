@@ -1,85 +1,78 @@
-
 # JIRA Service
 
-This service creates JIRA issues when a keptn deployment fails test evaluation.
+This service creates JIRA issues when Keptn performs a quality gate evaluation or a problem is raised.
+
 The service is subscribed to the following keptn events:
 
-- sh.keptn.events.evaluation-done
+* `sh.keptn.events.evaluation-done`
+* `sh.keptn.event.problem.open`
 
-## Keptn Compatability
+![screenshot](assets/jira-service-1.png)
 
-This service was tested for compatibility up through Keptn 0.5.1
+# Gather JIRA Information
+You'll need the following information to use this plugin.
 
-## Installation
+1. JIRA Base URL (without trailing slash) eg. `https://abc123.atlassian.net`
+1. JIRA Username eg. `joe.smith@example.com`
+1. JIRA API Token ([generate one here](https://id.atlassian.com/manage/api-tokens))
+1. JIRA Project Key. Take this from the URL. Eg. `PROJ` is the project code for `https://abc123.atlassian.net/projects/PROJ/issues`
+1. JIRA Issue Type eg. Task, Bug, Epic etc. Defaults to `Task`.
 
-To use this service, you must have a JIRA instance accessible from your Kubernetes cluster. One can apply for a JIRA developer instance directly via Atlassian here: [http://go.atlassian.com/cloud-dev](http://go.atlassian.com/cloud-dev) 
-Additionally, you must have secrets defined for the following:
-* JIRA hostname
-* JIRA username
-* JIRA access token
-
-you can create those secrets with the following command:
-
-```
-kubectl -n keptn create secret generic jira-service --from-literal="jira-hostname=<replacewithyourinstance>.atlassian.com" --from-literal="jira-username=<replacewithyourusername>" --from-literal="jira-token=<replacewithyouraccesstoken>"
+# Save JIRA Details as k8s Secret
+Paste your values into the command below (replacing `***`) and save the JIRA details into a secret called `jira-details` in the `keptn` namespace.
 
 ```
-Note, jira-project secret is optional. By default the jira-service will be looking for a JIRA project that is identical to the Keptn project.
-If you wish to define a different JIRA project, utilize this command:
-
-```
-kubectl -n keptn create secret generic jira-service --from-literal="jira-hostname=<replacewithyourinstance>.atlassian.com" --from-literal="jira-username=<replacewithyourusername>" --from-literal="jira-token=<replacewithyouraccesstoken>" --from-literal="jira-project=<replacewithyourjiraproject>"
-
-```
-
-Afterwards, to install the service in your keptn installation checkout or copy the `jira-service.yaml`.
-
-Then apply the `jira-service.yaml` using `kubectl` to create the jira service 
-
-```
-kubectl apply -f jira-service.yaml
+kubectl -n keptn create secret generic jira-details --from-literal="jira-base-url=***" --from-literal="jira-username=***" --from-literal="jira-api-token=***" --from-literal="jira-project-key=***" --from-literal="jira-issue-type=Task" --from-literal="jira-create-ticket-for-problems=true" --from-literal="jira-create-ticket-for-evaluations=true"
 ```
 
 Expected output:
 
 ```
+secret/jira-details created
+```
+
+# Install JIRA Service
+Install the service & distributor:
+
+```
+kubectl apply -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-service.yaml -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-distributor.yaml
+```
+
+Expected output:
+
+```
+deployment.apps/jira-service-distributor created
 deployment.apps/jira-service created
 service/jira-service created
 ```
 
-As of Keptn 0.4.0, an additional step is necessary to create distributors for the Keptn event channels. To install the distributors for the jira-service download or checkout the `jira-service-distributors.yaml`.
-
-Then apply the `jira-service-distributors.yaml` using `kubectl` to create the distributors
-
+# Usage / Testing
+Ask Keptn to start an evaluation:
 ```
-kubectl apply -f jira-service-distributors.yaml
+keptn send event start-evaluation --project=* --stage=* --service=* --timeframe=2m
 ```
 
-Expected output:
+# Debugging
+A debug log is available in the `jira-service` pod at `/var/www/html/logs/jiraService.log`
 
 ```
-deployment.apps/jira-service-evaluation-done-distributor created
+kubectl exec -itn keptn jira-service-*-* cat /var/www/html/logs/jiraService.log
 ```
 
-## Verification of installation
+# Deleting This Service
+
+Delete the `jira-details` secret, the distributor and service files:
 
 ```
-$ kubectl -n keptn get pod jira-service-54ddb69ff6-cg49j
-NAME                            READY   STATUS    RESTARTS   AGE
-jira-service-54ddb69ff6-cg49j   1/1     Running   0          65s
+kubectl delete secret -n keptn jira-details
+kubectl delete -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-service.yaml -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-distributor.yaml
 ```
 
-```
-$ kubectl -n keptn get pod jira-service-evaluation-done-distributor-75b4dc4c57-2jvdp
-NAME                                                        READY   STATUS    RESTARTS   AGE
-jira-service-evaluation-done-distributor-75b4dc4c57-2jvdp   1/1     Running   0          4m3s
-```
+# Compatibility Matrix
 
-## Uninstall service
+| Keptn Version    | JIRA Version / API Version |
+|:----------------:|:----------------------:|
+|     0.6.1        |            Cloud (Classic and NextGen) / v2          |
 
-To uninstall the jira service and remove the distributors for keptn channels execute these commands.
-
-```
-kubectl delete -f jira-service-distributors.yaml
-kubectl delete -f jira-service.yaml
-````
+# Contributions, Enhancements, Issues or Questions
+Please raise a GitHub issue or join the [Keptn Slack channel](https://join.slack.com/t/keptn/shared_invite/enQtNTUxMTQ1MzgzMzUxLWMzNmM1NDc4MmE0MmQ0MDgwYzMzMDc4NjM5ODk0ZmFjNTE2YzlkMGE4NGU5MWUxODY1NTBjNjNmNmI1NWQ1NGY).

@@ -1,9 +1,7 @@
----
-## jira-service: sh.keptn.events.evaluation-done
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: jira-service-evaluation-done-distributor
+  name: jira-service-distributor
   namespace: keptn
 spec:
   selector:
@@ -17,7 +15,7 @@ spec:
     spec:
       containers:
       - name: distributor
-        image: keptn/distributor:0.1.0
+        image: keptn/distributor:0.6.1
         ports:
         - containerPort: 8080
         resources:
@@ -31,6 +29,8 @@ spec:
         - name: PUBSUB_URL
           value: 'nats://keptn-nats-cluster'
         - name: PUBSUB_TOPIC
-          value: 'sh.keptn.events.evaluation-done'
+          value: 'sh.keptn.events.evaluation-done,sh.keptn.event.problem.open'
         - name: PUBSUB_RECIPIENT
           value: 'jira-service'
+        - name: PUBSUB_RECIPIENT_PORT
+          value: '80'
