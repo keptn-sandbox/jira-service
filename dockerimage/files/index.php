@@ -11,10 +11,11 @@ $jiraIssueType = getenv("JIRA_ISSUE_TYPE");
 $jiraTicketForProblems = getenv("JIRA_TICKET_FOR_PROBLEMS") === 'true'? true : false;
 $jiraTicketForEvaluations = getenv("JIRA_TICKET_FOR_EVALUATIONS") === 'true'? true : false;
 $dynatraceTenant = getenv("DT_TENANT");
+$keptnDomain = getenv("KEPTN_DOMAIN");
 
-if ($jiraBaseURL == null || $jiraUsername == null || $jiraAPIToken == null || $jiraProjectKey == null || $jiraIssueType == null) {
-    fwrite($logFile, "Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
-    exit("Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE");
+if ($jiraBaseURL == null || $jiraUsername == null || $jiraAPIToken == null || $jiraProjectKey == null || $jiraIssueType == null || $keptnDomain == null) {
+    fwrite($logFile, "Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE and / or KEPTN_DOMAIN");
+    exit("Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE and / or KEPTN_DOMAIN");
 }
 
 fwrite($logFile, "Got all input variables. Proceeding.\n");
@@ -48,15 +49,53 @@ if ($eventType == "sh.keptn.event.problem.open") fwrite($logFile, "Problem Event
    INPUT PARAM PROCESSING END. START FUNCTION DEFINITIONS.
 *************************************************************/
 
-function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $logFile) {
+function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $cloudEvent, $logFile) {
     
+    $keptnDomain = getenv("KEPTN_DOMAIN");
     $jiraBaseURL = "$jiraBaseURL/rest/api/2/issue";
     
+    $keptnProject = $cloudEvent->{'data'}->{'project'};
+    $keptnService = $cloudEvent->{'data'}->{'service'};
+    $keptnStage = $cloudEvent->{'data'}->{'stage'};
+    $keptnContext = $cloudEvent->{'shkeptncontext'};
+    $keptnEventID = $cloudEvent->{'id'};
+    
+    // Add keptn_* labels
+    $labels = array();
+    if ($keptnProject != null) array_push($labels, "keptn_project:$keptnProject");
+    
+    // Add keptn_project label, if present to the ticket body and as a JIRA label.
+    if ($keptnService != null) array_push($labels, "keptn_service:$keptnService");
+    
+    // Add keptn_project label, if present to the ticket body and as a JIRA label.
+    if ($keptnStage != null) array_push($labels, "keptn_stage:$keptnStage");
+    
+    // Create keptn_result label to show "pass", "warning" or "fail" as a label.
+    array_push($labels,"keptn_result:$resultLowercase");
+    
+    // "labels" can be passed via JSON. Add all labels as JIRA labels
+    $labelsFromJSON = $cloudEvent->{'data'}->{'labels'};
+    if ($labelsFromJSON != null) {
+      foreach ($labelsFromJSON as $key => $value) {
+        if (is_bool($value)) $value = var_export($value, true); // Transform boolean to string.
+        // JIRA doesn't accept whitespace in labels. Replace whitespace with dashes
+        $key = str_replace(' ', '-', $key);
+        $value = str_replace(' ', '-', $value);
+        
+        array_push($labels,"$key:$value"); 
+      }
+    }
+    
+    // Add labels to JIRA Object
+    if (count($labels) > 0) {
+      $jiraTicketObj->fields->labels = $labels;
+    }
+
     $payload = json_encode($jiraTicketObj);
     
     // Base64 encode the JIRA username and password
     $encodedKey = base64_encode($jiraUsername . ':' . $jiraAPIToken);
-
+    
     $ch = curl_init($jiraBaseURL);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLINFO_HEADER_OUT, true);
@@ -71,11 +110,54 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     ));
     
     // Submit the POST request
-    $result = curl_exec($ch);
+    try {
+      $result = curl_exec($ch);
 
-    fwrite($logFile,"Result: $result\n");
+      fwrite($logFile,"Result: $result\n");
+    }
+    catch (Exception $e) {
+        fwrite($logFile, "Exception caught creating ticket. Exiting: $e");
+        exit();
+    }
     // Close cURL session handle
     curl_close($ch);
+    
+    // Create link to Keptn's Bridge
+    
+    $ticketDetails = json_decode($result);
+    $ticketKey = $ticketDetails->{'key'}; // PROJ-123
+    $bridgeURL = "https://bridge.keptn.$keptnDomain/project/$keptnProject/$keptnService/$keptnContext/$keptnEventID";
+    
+    $jiraBaseURL = "$jiraBaseURL/$ticketKey/remotelink";
+    
+    $payloadObj = new stdClass();
+    $payloadObj->object->url = $bridgeURL;
+    $payloadObj->object->title = "Keptn's Bridge";
+    $payloadObj->object->icon->url16x16 = "https://raw.githubusercontent.com/keptn/community/master/logos/keptn-small.png";
+    
+    $payload = json_encode($payloadObj);
+    
+    $ch = curl_init($jiraBaseURL);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    
+    // Set HTTP Header for POST request
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+      'Content-Type: application/json',
+      'User-Agent: keptn-jira-service/v1',
+      "Authorization: Basic $encodedKey"
+    ));
+    
+    // Submit the POST request
+    try {
+      $result = curl_exec($ch);
+      fwrite($logFile, "Keptn Bridge Link Result: $result");
+    }
+    catch (Exception $e) {
+        fwrite($logFile, "Exception Caught Creating Keptn Bridge Link: $e");
+    }
 }
 
 /*************************************************
@@ -89,9 +171,6 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     
     $eventProblemTitle = $cloudEvent->{'data'}->{'ProblemTitle'};
     $eventImpactedEntity = $cloudEvent->{'data'}->{'ImpactedEntity'};
-    $keptnProject = $cloudEvent->{'data'}->{'project'};
-    $keptnService = $cloudEvent->{'data'}->{'service'};
-    $keptnStage = $cloudEvent->{'data'}->{'stage'};
     $keptnContext = $cloudEvent->{'shkeptncontext'};
     $eventProblemDetails = $cloudEvent->{'data'}->{'ProblemDetails'};
     $eventPID = $cloudEvent->{'data'}->{'PID'};
@@ -115,47 +194,6 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
     $jiraTicketObj->fields->description .= "$eventImpactedEntity\n\n";
-
-    // Add keptn_* labels
-    $labels = array();
-    if ($keptnProject != null) {
-      $jiraTicketObj->fields->description .= "*Keptn Details*\n";
-      $jiraTicketObj->fields->description .= "Project: $keptnProject\n";
-      array_push($labels, "keptn_project:$keptnProject");
-    }
-    // Add keptn_service label, if present, to the ticket body and as a JIRA label.
-    if ($keptnService != null) {
-      $jiraTicketObj->fields->description .= "Service: $keptnService\n";
-      array_push($labels, "keptn_service:$keptnService");
-    }
-    // Add keptn_stage label, if present to the ticket body and as a JIRA label.
-    if ($keptnStage != null) {
-      $jiraTicketObj->fields->description .= "Stage: $keptnStage\n";
-      array_push($labels, "keptn_stage:$keptnStage");
-    }
-    
-    // "labels" can be passed via JSON. Add all labels as jira labels
-    $labelsFromJSON = $cloudEvent->{'data'}->{'labels'};
-    if ($labelsFromJSON != null) {
-      foreach ($labelsFromJSON as $key => $value) {
-        if (is_bool($value)) $value = var_export($value, true); // Transform boolean to string.
-        // JIRA doesn't accept whitespace in labels. Replace whitespace with dashes
-        $key = str_replace(' ', '-', $key);
-        $value = str_replace(' ', '-', $value);
-        
-        array_push($labels,"$key:$value");
-      
-        // Special processing for a label of "jira-issue" key.
-        // Link issues with 'is caused by' if a parent issue ID exists
-        // TODO
-      }
-    }
-    
-    
-    // Add labels to JIRA Object
-    if (count($labels) > 0) {
-      $jiraTicketObj->fields->labels = $labels;
-    }
     
     // Print problem details
     $jiraTicketObj->fields->description .= "\n*Problem Details*\n";
@@ -201,7 +239,7 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     fwrite($logFile, "Completed Event processing. Creating ticket now. \n");
 
     // POST DATA TO JIRA
-    createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $logFile);
+    createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $cloudEvent, $logFile);
 }
 
 /*************************************************
@@ -244,40 +282,6 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
     
-    // Add keptn_* labels
-    $labels = array();
-    if ($keptnProject != null) array_push($labels, "keptn_project:$keptnProject");
-    
-    // Add keptn_project label, if present to the ticket body and as a JIRA label.
-    if ($keptnService != null) array_push($labels, "keptn_service:$keptnService");
-    
-    // Add keptn_project label, if present to the ticket body and as a JIRA label.
-    if ($keptnStage != null) array_push($labels, "keptn_stage:$keptnStage");
-    
-    // Create keptn_result label to show "pass", "warning" or "fail" as a label.
-    array_push($labels,"keptn_result:$resultLowercase");
-    
-    // "labels" can be passed via JSON. Add all labels as jira labels
-    $labelsFromJSON = $cloudEvent->{'data'}->{'labels'};
-    if ($labelsFromJSON != null) {
-      foreach ($labelsFromJSON as $key => $value) {
-        if (is_bool($value)) $value = var_export($value, true); // Transform boolean to string.
-        // JIRA doesn't accept whitespace in labels. Replace whitespace with dashes
-        $key = str_replace(' ', '-', $key);
-        $value = str_replace(' ', '-', $value);
-        array_push($labels,"$key:$value");
-      
-        // Special processing for a label of "jira-issue" key.
-        // Link issues with 'is caused by' if a parent issue ID exists
-        // TODO
-      }
-    }
-    
-    // Add labels to JIRA Object
-    if (count($labels) > 0) {
-      $jiraTicketObj->fields->labels = $labels;
-    }
-    
     // For loop through indicatorResults
     $jiraTicketObj->fields->description .= "*SLI Results*\n";
     foreach ($cloudEvent->{'data'}->{'evaluationdetails'}->{'indicatorResults'} as &$value) {
@@ -300,7 +304,7 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     fwrite($logFile, "Completed Event processing. Creating ticket now. \n");
     
     // POST DATA TO JIRA
-    createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $logFile);
+    createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $cloudEvent, $logFile);
 }
 
 // Close handle to log file

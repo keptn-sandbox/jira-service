@@ -62,6 +62,11 @@ spec:
               name: dynatrace
               key: DT_TENANT
               optional: true
+        - name: KEPTN_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: keptn-domain
+              key: app_domain
 ---
 apiVersion: v1
 kind: Service
