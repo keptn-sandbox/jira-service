@@ -314,7 +314,7 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     $keptnService = $cloudEvent->{'data'}->{'service'};
     $keptnStage = $cloudEvent->{'data'}->{'stage'};
     $startTime = $cloudEvent->{'data'}->{'evaluationdetails'}->{'timeStart'};
-    $endTime = $cloudEvent->{'data'}->{'evaluationdetails'}->{'timeStart'};
+    $endTime = $cloudEvent->{'data'}->{'evaluationdetails'}->{'timeEnd'};
     $testStrategy = $cloudEvent->{'data'}->{'teststrategy'};
 
     fwrite($logFile,"Finished processing problem inputs. Creating JIRA JSON now.\n");
