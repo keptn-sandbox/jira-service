@@ -49,16 +49,23 @@ if ($eventType == "sh.keptn.event.problem.open") fwrite($logFile, "Problem Event
    INPUT PARAM PROCESSING END. START FUNCTION DEFINITIONS.
 *************************************************************/
 
-function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $cloudEvent, $logFile) {
+function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $ticketType, $cloudEvent, $logFile) {
     
     $keptnDomain = getenv("KEPTN_DOMAIN");
+    $dynatraceTenant = getenv("DT_TENANT");
     $jiraBaseURL = "$jiraBaseURL/rest/api/2/issue";
+    // $ticketType is either: "PROBLEM" or "EVALATION"
     
     $keptnProject = $cloudEvent->{'data'}->{'project'};
     $keptnService = $cloudEvent->{'data'}->{'service'};
     $keptnStage = $cloudEvent->{'data'}->{'stage'};
     $keptnContext = $cloudEvent->{'shkeptncontext'};
     $keptnEventID = $cloudEvent->{'id'};
+    $resultLowercase = $cloudEvent->{'data'}->{'result'};
+    $bridgeURL = "https://bridge.keptn.$keptnDomain/project/$keptnProject/$keptnService/$keptnContext/$keptnEventID";
+    
+    // Add description link to Keptn's Bridge
+    $jiraTicketObj->fields->description .= "h2. For full output and history, check the [Keptn's Bridge|$bridgeURL].\n";
     
     // Add keptn_* labels
     $labels = array();
@@ -70,8 +77,8 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     // Add keptn_project label, if present to the ticket body and as a JIRA label.
     if ($keptnStage != null) array_push($labels, "keptn_stage:$keptnStage");
     
-    // Create keptn_result label to show "pass", "warning" or "fail" as a label.
-    array_push($labels,"keptn_result:$resultLowercase");
+    // Create keptn_result label to show "pass", "warning" or "fail" as a label for evaluations.
+    if ($ticketType == "EVALUATION") array_push($labels,"keptn_result:$resultLowercase");
     
     // "labels" can be passed via JSON. Add all labels as JIRA labels
     $labelsFromJSON = $cloudEvent->{'data'}->{'labels'};
@@ -126,7 +133,6 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     
     $ticketDetails = json_decode($result);
     $ticketKey = $ticketDetails->{'key'}; // PROJ-123
-    $bridgeURL = "https://bridge.keptn.$keptnDomain/project/$keptnProject/$keptnService/$keptnContext/$keptnEventID";
     
     $jiraBaseURL = "$jiraBaseURL/$ticketKey/remotelink";
     
@@ -157,6 +163,44 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     }
     catch (Exception $e) {
         fwrite($logFile, "Exception Caught Creating Keptn Bridge Link: $e");
+    }
+    
+    // Create link to Dynatrace problem
+    if ($ticketType == "PROBLEM") {
+      if ($dynatraceTenant) {
+        $eventPID = $cloudEvent->{'data'}->{'PID'};
+        $dynatraceLink = "https://$dynatraceTenant/#problems/problemdetails;pid=$eventPID";
+        $jiraTicketObj->fields->description .= "Dynatrace: $dynatraceLink \n";
+        
+        $payloadObj = new stdClass();
+        $payloadObj->object->url = $dynatraceLink;
+        $payloadObj->object->title = "Dynatrace Problem";
+        $payloadObj->object->icon->url16x16 = "https://dt-cdn.net/images/favicon-48x48-transparent-48-9b4df9c769.png";
+    
+        $payload = json_encode($payloadObj);
+    
+        $ch = curl_init($jiraBaseURL);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    
+        // Set HTTP Header for POST request
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+          'Content-Type: application/json',
+          'User-Agent: keptn-jira-service/v1',
+          "Authorization: Basic $encodedKey"
+        ));
+    
+        // Submit the POST request
+        try {
+          $result = curl_exec($ch);
+          fwrite($logFile, "DT Problem Link Result: $result");
+        }
+        catch (Exception $e) {
+            fwrite($logFile, "Exception Caught Creating DT Problem Link: $e");
+        }
+      }
     }
 }
 
@@ -204,7 +248,7 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
           $value = var_export($value, true); // Transform boolean to string.
         }
         // Ignore certain fields.
-        $ignore_fields = array("startTime", "endTime", "status", "displayName");
+        $ignore_fields = array("id","startTime", "endTime", "status", "displayName");
         if (in_array($key, $ignore_fields)) continue;
         
         $jiraTicketObj->fields->description .= "$key: $value\n";
@@ -223,23 +267,21 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     }
     
     $jiraTicketObj->fields->description .= "\n*Additional Information*\n";
-    $jiraTicketObj->fields->description .= "Problem ID: $eventProblemID\n";
+    $jiraTicketObj->fields->description .= "Time: $eventTime\n";
     $jiraTicketObj->fields->description .= "PID: $eventPID\n";
-    $jiraTicketObj->fields->description .= "Keptn Context: $keptnContext\n";
-    $jiraTicketObj->fields->description .= "Event Time: $eventTime\n";
     
     /* If a dynatrace is used, add a link to the problem ticket.
      * The official JIRA plugin uses this for all sorts of extended functionality
      */
     if ($dynatraceTenant) {
       $dynatraceLink = "https://$dynatraceTenant/#problems/problemdetails;pid=$eventPID";
-      $jiraTicketObj->fields->description .= "Dynatrace: $dynatraceLink";
+      $jiraTicketObj->fields->description .= "[Dynatrace Problem|$dynatraceLink] \n";
     }
 
     fwrite($logFile, "Completed Event processing. Creating ticket now. \n");
 
     // POST DATA TO JIRA
-    createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $cloudEvent, $logFile);
+    createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, "PROBLEM", $cloudEvent, $logFile);
 }
 
 /*************************************************
@@ -267,11 +309,13 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     // Transform Keptn Evaluation Result to uppercase
     $resultLowercase = $cloudEvent->{'data'}->{'result'};
     $result = strtoupper($cloudEvent->{'data'}->{'result'});
-
+    $score = $cloudEvent->{'data'}->{'evaluationdetails'}->{'score'};
     $keptnProject = $cloudEvent->{'data'}->{'project'};
     $keptnService = $cloudEvent->{'data'}->{'service'};
     $keptnStage = $cloudEvent->{'data'}->{'stage'};
-    $keptnContext = $cloudEvent->{'shkeptncontext'};
+    $startTime = $cloudEvent->{'data'}->{'evaluationdetails'}->{'timeStart'};
+    $endTime = $cloudEvent->{'data'}->{'evaluationdetails'}->{'timeStart'};
+    $testStrategy = $cloudEvent->{'data'}->{'teststrategy'};
 
     fwrite($logFile,"Finished processing problem inputs. Creating JIRA JSON now.\n");
     
@@ -282,29 +326,16 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
     
-    // For loop through indicatorResults
-    $jiraTicketObj->fields->description .= "*SLI Results*\n";
-    foreach ($cloudEvent->{'data'}->{'evaluationdetails'}->{'indicatorResults'} as &$value) {
-      $jiraTicketObj->fields->description .= "|| *Metric* || *Status* || *Value* ||\n";
-      $jiraTicketObj->fields->description .= "| " . $value->{'value'}->{'metric'} . " | " . $value->{'status'} . " | " . $value->{'value'}->{'value'} ." |\n\n";
-      $jiraTicketObj->fields->description .= "*Targets*\n\n";
-      $jiraTicketObj->fields->description .= "|| *Criteria* || *Violated* ||\n";
-  
-      foreach ($value->{'targets'} as &$target) {
-        $jiraTicketObj->fields->description .= "| " . $target->{'criteria'} . " | " . ($target->{'violated'} ? 'true' : 'false') ." |\n";
-      }
-  
-      if ($value->{'value'}->{'message'} != "") {
-        $jiraTicketObj->fields->description .= "Message: " . $value->{'value'}->{'message'} . "\n\n";
-      }
-    }
-
-    $jiraTicketObj->fields->description .= "Keptn Context: $keptnContext";
+    $jiraTicketObj->fields->description .= "||*Result*||*Score*||\n";
+    $jiraTicketObj->fields->description .= "|$result|$score|\n\n";
+    $jiraTicketObj->fields->description .= "*Start Time:* $startTime\n";
+    $jiraTicketObj->fields->description .= "*End Time:* $endTime\n";
+    $jiraTicketObj->fields->description .= "*Test Strategy:* $testStrategy\n\n";
     
     fwrite($logFile, "Completed Event processing. Creating ticket now. \n");
     
     // POST DATA TO JIRA
-    createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $cloudEvent, $logFile);
+    createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, "EVALUATION", $cloudEvent, $logFile);
 }
 
 // Close handle to log file
