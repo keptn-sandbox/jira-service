@@ -35,7 +35,7 @@ secret/jira-details created
 Install the service & distributor:
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-service.yaml -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-distributor.yaml
+kubectl apply -f https://raw.githubusercontent.com/keptn-sandbox/jira-service/master/jira-service.yaml -f https://raw.githubusercontent.com/keptn-sandbox/jira-service/master/jira-distributor.yaml
 ```
 
 Expected output:
@@ -65,7 +65,7 @@ Delete the `jira-details` secret, the distributor and service files:
 
 ```
 kubectl delete secret -n keptn jira-details
-kubectl delete -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-service.yaml -f https://raw.githubusercontent.com/Dynatrace-Adam-Gardner/jira-service/master/jira-distributor.yaml
+kubectl delete -f https://raw.githubusercontent.com/keptn-sandbox/jira-service/master/jira-service.yaml -f https://raw.githubusercontent.com/keptn-sandbox/jira-service/master/jira-distributor.yaml
 ```
 
 # Compatibility Matrix
