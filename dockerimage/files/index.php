@@ -1,6 +1,30 @@
 <?php
 
-// Write the raw input to the log file...
+/*
+  This service will:
+  - Create JIRA tickets for Keptn `problem.open` events
+  - Create JIRA tickets for Keptn `evalution-done` events
+  
+  -- Labels / Tags --
+  JIRA labels will be created for any Keptn labels. JIRA doesn't allow spaces in labels, so spaces are converted to dashes.
+  
+  If the ticket is an evaluation AND the incoming JSON has a label of `jira_issue` then this evaluation is assumed to be 'caused by' the ticket number referenced in the label.
+  This service will link the two tickets with a 'causes / is caused by' relationship.
+  
+  Additional JIRA labels are always created for `keptn_project`, `keptn_service` and `keptn_stage` values.
+  
+  When the ticket is an evaluation ticket, a JIRA label for `keptn_result` is created with the value `pass`, `warning` or `fail`.
+  This makes it possible to filter using JQL such that: "keptn_project:sockshop AND keptn_result:fail"
+  
+  -- External Links --
+  External links will be added to the tickets as appropriate.
+  Problem tickets will have direct links to the Dynatrace problem AND the Keptn's bridge.
+  Evaluation tickets will have direct links to the Keptn's bridge.
+  
+  ** Note: We recommend this service is used in conjunction with the official Dynatrace JIRA plugin: https://marketplace.atlassian.com/apps/1217645/dynatrace-for-jira-cloud?hosting=cloud&tab=overview **
+*/
+
+// Create and / or open the log file.
 $logFile = fopen("logs/jiraService.log", "a") or die("Unable to open file!");
 
 $jiraBaseURL = getenv("JIRA_BASE_URL");
@@ -32,7 +56,7 @@ if ($entityBody == null) {
   exit("Missing data input from Keptn. Exiting.");
 }
 
-//Decode the incoming JSON event
+// Decode the incoming JSON event
 $cloudEvent = json_decode($entityBody);
 
 $eventType = $cloudEvent->{'type'};
@@ -41,9 +65,10 @@ fwrite($logFile, "Event Type: $eventType \n");
 
 // Only problem events have a state, so check event state only when it's a problem.open event.
 $eventState = "";
-if ($eventType == "sh.keptn.event.problem.open") $eventState = $cloudEvent->{'data'}->{'State'};
-
-if ($eventType == "sh.keptn.event.problem.open") fwrite($logFile, "Problem Event State (this can be CLOSED or OPEN): $eventState\n");
+if ($eventType == "sh.keptn.event.problem.open") {
+  $eventState = $cloudEvent->{'data'}->{'State'};
+  fwrite($logFile, "Problem Event State (this can be CLOSED or OPEN): $eventState\n");
+}
 
 /************************************************************
    INPUT PARAM PROCESSING END. START FUNCTION DEFINITIONS.
@@ -54,7 +79,8 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     $keptnDomain = getenv("KEPTN_DOMAIN");
     $dynatraceTenant = getenv("DT_TENANT");
     $jiraBaseURL = "$jiraBaseURL/rest/api/2/issue";
-    // $ticketType is either: "PROBLEM" or "EVALATION"
+    // Base64 encode the JIRA username and password
+    $encodedKey = base64_encode($jiraUsername . ':' . $jiraAPIToken);
     
     $keptnProject = $cloudEvent->{'data'}->{'project'};
     $keptnService = $cloudEvent->{'data'}->{'service'};
@@ -92,17 +118,16 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
         array_push($labels,"$key:$value"); 
       }
     }
-    
+
     // Add labels to JIRA Object
-    if (count($labels) > 0) {
-      $jiraTicketObj->fields->labels = $labels;
-    }
+    if (count($labels) > 0) $jiraTicketObj->fields->labels = $labels;
 
     $payload = json_encode($jiraTicketObj);
     
-    // Base64 encode the JIRA username and password
-    $encodedKey = base64_encode($jiraUsername . ':' . $jiraAPIToken);
     
+    //---------------------------------
+    //       Create JIRA ticket
+    //---------------------------------
     $ch = curl_init($jiraBaseURL);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLINFO_HEADER_OUT, true);
@@ -119,7 +144,6 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     // Submit the POST request
     try {
       $result = curl_exec($ch);
-
       fwrite($logFile,"Result: $result\n");
     }
     catch (Exception $e) {
@@ -129,12 +153,13 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     // Close cURL session handle
     curl_close($ch);
     
+    //---------------------------------
     // Create link to Keptn's Bridge
-    
+    //---------------------------------
     $ticketDetails = json_decode($result);
     $ticketKey = $ticketDetails->{'key'}; // PROJ-123
     
-    $jiraBaseURL = "$jiraBaseURL/$ticketKey/remotelink";
+    $jiraRemoteLinkURL = "$jiraBaseURL/$ticketKey/remotelink";
     
     $payloadObj = new stdClass();
     $payloadObj->object->url = $bridgeURL;
@@ -143,7 +168,7 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     
     $payload = json_encode($payloadObj);
     
-    $ch = curl_init($jiraBaseURL);
+    $ch = curl_init($jiraRemoteLinkURL);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLINFO_HEADER_OUT, true);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -165,13 +190,15 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
         fwrite($logFile, "Exception Caught Creating Keptn Bridge Link: $e");
     }
     
+    //---------------------------------
     // Create link to Dynatrace problem
+    //---------------------------------
     if ($ticketType == "PROBLEM") {
       if ($dynatraceTenant) {
         $eventPID = $cloudEvent->{'data'}->{'PID'};
         $dynatraceLink = "https://$dynatraceTenant/#problems/problemdetails;pid=$eventPID";
         $jiraTicketObj->fields->description .= "Dynatrace: $dynatraceLink \n";
-        
+      }
         $payloadObj = new stdClass();
         $payloadObj->object->url = $dynatraceLink;
         $payloadObj->object->title = "Dynatrace Problem";
@@ -179,7 +206,7 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     
         $payload = json_encode($payloadObj);
     
-        $ch = curl_init($jiraBaseURL);
+        $ch = curl_init($jiraRemoteLinkURL);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLINFO_HEADER_OUT, true);
         curl_setopt($ch, CURLOPT_POST, true);
@@ -201,7 +228,51 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
             fwrite($logFile, "Exception Caught Creating DT Problem Link: $e");
         }
       }
-    }
+      
+      //---------------------------------
+      // Create link to parent ticket
+      //---------------------------------
+      
+      if ($ticketType == "EVALUATION" && $labelsFromJSON && $labelsFromJSON->jira_issue) {
+        
+        $jiraParentTicketKeyURL = "$jiraBaseURL/$ticketKey";
+        $issueLinkObj = new stdClass();
+        $issueLinkObj->add->type->name = "Problem/Incident";
+        $issueLinkObj->add->inwardIssue->key = $labelsFromJSON->jira_issue; // Parent issue
+        $issueLinks = array($issueLinkObj);
+
+        // Build Ticket Linking Payload
+        $payloadObj = new stdClass();
+        $payloadObj->update->issuelinks = $issueLinks;
+        $payload = json_encode($payloadObj);
+        
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+          CURLOPT_URL => $jiraParentTicketKeyURL,
+          CURLOPT_RETURNTRANSFER => true,
+          CURLOPT_ENCODING => "",
+          CURLOPT_MAXREDIRS => 10,
+          CURLOPT_TIMEOUT => 0,
+          CURLOPT_FOLLOWLOCATION => true,
+          CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+          CURLOPT_CUSTOMREQUEST => "PUT",
+          CURLOPT_POSTFIELDS => $payload,
+          CURLOPT_HTTPHEADER => array(
+            'Content-Type: application/json',
+            'User-Agent: keptn-jira-service/v1',
+            "Authorization: Basic $encodedKey"
+          ),
+        ));
+        
+        try {
+          $response = curl_exec($curl);
+          fwrite($logFile, "Link to Parent Ticket Response: $response");
+        }
+        catch (Exception $e) {
+          fwrite($logFile, "Error Linking to Parent Ticket Response: $e");
+        }
+      }
 }
 
 /*************************************************
