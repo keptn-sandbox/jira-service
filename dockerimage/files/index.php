@@ -327,6 +327,14 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
     
     $jiraTicketObj->fields->description .= "||*Result*||*Score*||\n";
+    /* Emojis via API don't follow the UI standard.
+     * (/) = :check_mark:
+     * (!) = :warning:
+     * (x) = :cross_mark:
+     */
+    if ($result == "PASS") $result = "$result (/)";
+    if ($result == "WARNING") $result = "$result (!)";
+    if ($result == "FAIL") $result = "$result (x)";
     $jiraTicketObj->fields->description .= "|$result|$score|\n\n";
     $jiraTicketObj->fields->description .= "*Start Time:* $startTime\n";
     $jiraTicketObj->fields->description .= "*End Time:* $endTime\n";
