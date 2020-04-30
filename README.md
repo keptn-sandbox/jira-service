@@ -9,6 +9,8 @@ The service is subscribed to the following keptn events:
 
 ![screenshot](assets/jira-service-1.png)
 
+![screenshot](assets/jira-service-2.png)
+
 # Gather JIRA Information
 You'll need the following information to use this plugin.
 
