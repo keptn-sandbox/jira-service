@@ -67,7 +67,11 @@ fwrite($logFile, "Event Type: $eventType \n");
 $eventState = "";
 if ($eventType == "sh.keptn.event.problem.open") {
   $eventState = $cloudEvent->{'data'}->{'State'};
-  fwrite($logFile, "Problem Event State (this can be CLOSED or OPEN): $eventState\n");
+  fwrite($logFile, "Problem Open Event State : $eventState\n");
+}
+if ($eventType == "sh.keptn.events.problem") {
+  $eventState = $cloudEvent->{'data'}->{'State'};
+  fwrite($logFile, "Problem Event State : $eventState\n");
 }
 
 /************************************************************
@@ -275,6 +279,156 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
       }
 }
 
+function closeJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $cloudEvent, $logFile) {
+    fwrite($logFile,"CLOSING TICKET...\n");
+    
+    $jiraProjectKey = getenv("JIRA_PROJECT_KEY");
+    $eventPID = $cloudEvent->{'data'}->{'PID'};
+    
+    // Base64 encode the JIRA username and password
+    $encodedKey = base64_encode($jiraUsername . ':' . $jiraAPIToken);
+    
+    // Step 1: Search for the issue using PID
+    $curl = curl_init();
+
+    curl_setopt_array($curl, array(
+      CURLOPT_URL => "$jiraBaseURL/rest/api/2/search",
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_ENCODING => "",
+      CURLOPT_MAXREDIRS => 10,
+      CURLOPT_TIMEOUT => 0,
+      CURLOPT_FOLLOWLOCATION => true,
+      CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+      CURLOPT_CUSTOMREQUEST => "POST",
+      CURLOPT_POSTFIELDS =>"{\"jql\":\"project = $jiraProjectKey AND text ~ 'PID: $eventPID'\",\"startAt\":0,\"maxResults\":1,\"fields\":[\"key\"]}",
+      CURLOPT_HTTPHEADER => array(
+        "Authorization: Basic $encodedKey",
+        "Content-Type: application/json"
+      ),
+    ));
+    
+    $foundIssueKey = "";
+    
+    try {
+      $response = curl_exec($curl);
+      $responseDecoded = json_decode($response);
+      $foundIssueKey = $responseDecoded->{'issues'}[0]->{'key'};
+      fwrite($logFile, "\nSearch for Ticket by PID Response: $response \n");
+    }
+    catch (Exception $e) {
+      fwrite($logFile, "\n[CLOSE TICKET] Exception caught searching for ticket by PID: $e");
+    }
+    finally {
+      curl_close($curl);
+    }
+    
+    // If no relevant issue found, exit.
+    if (!strpbrk($foundIssueKey, $jiraProjectKey)) {
+        fwrite($logFile, "[CLOSE TICKET] No relevant issue key for step 1. Found: $foundIssueKey. Exiting. \n");
+        die("[CLOSE TICKET] Step 1: No issue found");
+    }
+    
+    // Step 2: Get available transitions for this issue (ie. To retrieve the ID for the "Done" transformation)
+    fwrite($logFile, "\n Step 2 JIRA URL: $jiraBaseURL/rest/api/2/issue/$foundIssueKey/transitions \n");
+    
+    $curl = curl_init();
+
+    curl_setopt_array($curl, array(
+      CURLOPT_URL => "$jiraBaseURL/rest/api/2/issue/$foundIssueKey/transitions",
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_ENCODING => "",
+      CURLOPT_MAXREDIRS => 10,
+      CURLOPT_TIMEOUT => 0,
+      CURLOPT_FOLLOWLOCATION => true,
+      CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+      CURLOPT_CUSTOMREQUEST => "GET",
+      CURLOPT_HTTPHEADER => array(
+        "Authorization: Basic $encodedKey"
+      ),
+    ));
+      
+    try {
+      $response = curl_exec($curl);
+      $responseDecoded = json_decode($response);
+      fwrite($logFile, "\n Get transitions for $foundIssueKey response: $response\n");
+    }
+    catch (Exception $e) {
+      fwrite($logFile, "\n[CLOSE TICKET] Exception caught getting available transitions for $foundIssueKey \n");
+    }
+    finally {
+      curl_close($curl);
+    }
+    
+    // Get the transition ID for "Done"
+    $transitionID = "";
+    foreach ($responseDecoded->{'transitions'} as &$transition) {
+      if ($transition->{'name'} == "Done") $transitionID = $transition->{'id'};
+    }
+    
+    fwrite($logFile, "\n [CLOSE TICKET] Transition ID: $transitionID");
+    
+    // Step 3: Send comment to this issue that we're closing it.
+    $curl = curl_init();
+
+    curl_setopt_array($curl, array(
+      CURLOPT_URL => "$jiraBaseURL/rest/api/2/issue/$foundIssueKey",
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_ENCODING => "",
+      CURLOPT_MAXREDIRS => 10,
+      CURLOPT_TIMEOUT => 0,
+      CURLOPT_FOLLOWLOCATION => true,
+      CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+      CURLOPT_CUSTOMREQUEST => "PUT",
+      CURLOPT_POSTFIELDS =>"{ \"update\": { \"comment\": [{ \"add\": { \"body\": \"Keptn received a problem closed / resolved event. Closing JIRA issue ($foundIssueKey).\" } }] } }",
+      CURLOPT_HTTPHEADER => array(
+        "Authorization: Basic $encodedKey",
+        "Content-Type: application/json"
+      ),
+    ));
+
+    try {
+      $response = curl_exec($curl);
+      fwrite($logFile, "\n[CLOSE TICKET] Comment Sent to $foundIssueKey \n");
+    }
+    catch (Exception $e) {
+      fwrite($logFile, "\n[CLOSE TICKET] Comment Sending failed for $foundIssueKey: $e \n");
+    }
+    finally {
+      curl_close($curl);    
+    }
+
+    // Step 4: Close the issue
+    $curl = curl_init();
+
+    curl_setopt_array($curl, array(
+      CURLOPT_URL => "$jiraBaseURL/rest/api/2/issue/$foundIssueKey/transitions",
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_ENCODING => "",
+      CURLOPT_MAXREDIRS => 10,
+      CURLOPT_TIMEOUT => 0,
+      CURLOPT_FOLLOWLOCATION => true,
+      CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+      CURLOPT_CUSTOMREQUEST => "POST",
+      CURLOPT_POSTFIELDS =>"{ \"transition\": { \"id\": \"$transitionID\"} }",
+      CURLOPT_HTTPHEADER => array(
+        "Authorization: Basic $encodedKey",
+        "Content-Type: application/json"
+      ),
+    ));
+
+    try {
+      $response = curl_exec($curl);
+      fwrite($logFile, "[CLOSE TICKET] Closing ticket for $foundIssueKey. Response: $response");
+    }
+    catch (Exception $e) {
+      fwrite($logFile, "\n[CLOSE TICKET] Closing ticket failed for $foundIssueKey: $e \n");
+    }
+    finally {
+      curl_close($curl);    
+    }
+}
+
+
 /*************************************************
 *    CREATE TICKET FOR PROBLEM OPEN EVENT
 *************************************************/
@@ -359,13 +513,8 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
 *    MODIFY TICKET FOR PROBLEM CLOSED EVENT
 *************************************************/
 
-if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $eventState == "CLOSED") {
-    
-    // Modify JIRA ticket.
-    fwrite($logFile, "Got a problem closed event. NOT YET IMPLEMENTED. \n");
-    fwrite($logFile, "$entityBody \n");
-    // NOT YET IMPLEMENTED
-    // Problem is closing. Process the JIRA ticket.
+if ($jiraTicketForProblems && $eventType == "sh.keptn.events.problem" && ($eventState == "CLOSED" || $eventState == "RESOLVED")) {
+    closeJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $cloudEvent, $logFile);
 }
 
 /*************************************************
