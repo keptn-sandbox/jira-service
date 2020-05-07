@@ -29,7 +29,7 @@ spec:
         - name: PUBSUB_URL
           value: 'nats://keptn-nats-cluster'
         - name: PUBSUB_TOPIC
-          value: 'sh.keptn.events.evaluation-done,sh.keptn.event.problem.open'
+          value: 'sh.keptn.events.evaluation-done,sh.keptn.event.problem.open,sh.keptn.events.problem'
         - name: PUBSUB_RECIPIENT
           value: 'jira-service'
         - name: PUBSUB_RECIPIENT_PORT
