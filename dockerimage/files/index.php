@@ -112,6 +112,8 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     
     // "labels" can be passed via JSON. Add all labels as JIRA labels
     $labelsFromJSON = $cloudEvent->{'data'}->{'labels'};
+    fwrite($logFile,"Labels From JSON: $labelsFromJSON \n");
+  
     if ($labelsFromJSON != null) {
       foreach ($labelsFromJSON as $key => $value) {
         if (is_bool($value)) $value = var_export($value, true); // Transform boolean to string.
@@ -119,8 +121,12 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
         $key = str_replace(' ', '-', $key);
         $value = str_replace(' ', '-', $value);
         
+        fwrite($logFile,"Label is: $key:$value \n");
         array_push($labels,"$key:$value"); 
       }
+    }
+    else {
+      fwrite($logFile, "Labels From JSON is null \n");
     }
 
     // Add labels to JIRA Object
