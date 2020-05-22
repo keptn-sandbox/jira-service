@@ -55,10 +55,10 @@ if ($entityBody == null) {
   fwrite($logFile, "Missing data input from Keptn. Exiting.");
   exit("Missing data input from Keptn. Exiting.");
 }
+fwrite($logFile, "Input Data: $entityBody");
 
 // Decode the incoming JSON event
 $cloudEvent = json_decode($entityBody);
-fwrite($logFile, "Cloud Event: $cloudEvent \n");
 
 $eventType = $cloudEvent->{'type'};
 
