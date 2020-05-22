@@ -58,6 +58,7 @@ if ($entityBody == null) {
 
 // Decode the incoming JSON event
 $cloudEvent = json_decode($entityBody);
+fwrite($logFile, "Cloud Event: $cloudEvent \n");
 
 $eventType = $cloudEvent->{'type'};
 
