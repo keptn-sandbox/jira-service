@@ -42,7 +42,7 @@ if ($jiraBaseURL == null || $jiraUsername == null || $jiraAPIToken == null || $j
     exit("Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE and / or KEPTN_DOMAIN");
 }
 
-fwrite($logFile, "Got all input variables. Proceeding.\n");
+fwrite($logFile, "Got all input variables. Proceeding...\n");
 
 if ($jiraTicketForProblems) fwrite($logFile, "Will create tickets for problems.\n");
 else fwrite($logFile, "Will NOT create tickets for problems.\n");
@@ -55,7 +55,7 @@ if ($entityBody == null) {
   fwrite($logFile, "Missing data input from Keptn. Exiting.");
   exit("Missing data input from Keptn. Exiting.");
 }
-fwrite($logFile, "Input Data: $entityBody");
+fwrite($logFile, "Input Data: $entityBody \n");
 
 // Decode the incoming JSON event
 $cloudEvent = json_decode($entityBody);
@@ -102,7 +102,7 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     $jiraTicketObj->fields->description .= "h2. For full output and history, check the [Keptn's Bridge|$bridgeURL].\n";
     
     // Add keptn_* labels
-    fwrite($logFile,"Creating keptn_* labels");
+    fwrite($logFile,"Creating keptn_* labels... \n");
     $labels = array();
     if ($keptnProject != null) array_push($labels, "keptn_project:$keptnProject");
     
@@ -118,7 +118,6 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     fwrite($logFile, "Processing extra labels... \n");
     // "labels" can be passed via JSON. Add all labels as JIRA labels
     $labelsFromJSON = $cloudEvent->{'data'}->{'labels'};
-    //fwrite($logFile, "Labels From JSON: $labelsFromJSON \n");
   
     if ($labelsFromJSON != null) {
       fwrite($logFile, "Got some labels. Processing now. \n");
@@ -128,20 +127,16 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
         $key = str_replace(' ', '-', $key);
         $value = str_replace(' ', '-', $value);
         
-        //fwrite($logFile,"Label is: $key:$value \n");
+        fwrite($logFile, "Additional Label: $key:$value \n");
         array_push($labels,"$key:$value"); 
       }
-    }
-    else {
-      //fwrite($logFile, "Labels From JSON is null \n");
     }
 
     // Add labels to JIRA Object
     if (count($labels) > 0) $jiraTicketObj->fields->labels = $labels;
 
-    fwrite($logFile, "Done processing labels. Encoding ticket now. \n");
+    fwrite($logFile, "Done processing labels. Encoding ticket now... \n");
     $payload = json_encode($jiraTicketObj);
-    
     
     //---------------------------------
     //       Create JIRA ticket
@@ -162,7 +157,7 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     // Submit the POST request
     try {
       $result = curl_exec($ch);
-      fwrite($logFile,"Result: $result\n");
+      fwrite($logFile,"Ticket creation result: $result \n");
     }
     catch (Exception $e) {
         fwrite($logFile, "Exception caught creating ticket. Exiting: $e");
@@ -202,7 +197,7 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     // Submit the POST request
     try {
       $result = curl_exec($ch);
-      fwrite($logFile, "Keptn Bridge Link Result: $result");
+      fwrite($logFile, "Keptn Bridge Link Result: $result \n");
     }
     catch (Exception $e) {
         fwrite($logFile, "Exception Caught Creating Keptn Bridge Link: $e");
@@ -285,10 +280,10 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
         
         try {
           $response = curl_exec($curl);
-          fwrite($logFile, "Link to Parent Ticket Response: $response");
+          fwrite($logFile, "Link to Parent Ticket Response: $response \n");
         }
         catch (Exception $e) {
-          fwrite($logFile, "Error Linking to Parent Ticket Response: $e");
+          fwrite($logFile, "Error Linking to Parent Ticket Response: $e \n");
         }
       }
 }
