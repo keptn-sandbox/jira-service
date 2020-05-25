@@ -81,6 +81,8 @@ if ($eventType == "sh.keptn.events.problem") {
 
 function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicketObj, $ticketType, $cloudEvent, $logFile) {
     
+    fwrite($logFile, "Creating JIRA Ticket. \n");
+  
     $keptnDomain = getenv("KEPTN_DOMAIN");
     $dynatraceTenant = getenv("DT_TENANT");
     $jiraBaseURL = "$jiraBaseURL/rest/api/2/issue";
@@ -95,10 +97,12 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     $resultLowercase = $cloudEvent->{'data'}->{'result'};
     $bridgeURL = "https://bridge.keptn.$keptnDomain/project/$keptnProject/$keptnService/$keptnContext/$keptnEventID";
     
+    fwrite($logFile, "Adding description link to Keptn's bridge... \n");
     // Add description link to Keptn's Bridge
     $jiraTicketObj->fields->description .= "h2. For full output and history, check the [Keptn's Bridge|$bridgeURL].\n";
     
     // Add keptn_* labels
+    fwrite($logFile,"Creating keptn_* labels");
     $labels = array();
     if ($keptnProject != null) array_push($labels, "keptn_project:$keptnProject");
     
@@ -111,28 +115,31 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     // Create keptn_result label to show "pass", "warning" or "fail" as a label for evaluations.
     if ($ticketType == "EVALUATION") array_push($labels,"keptn_result:$resultLowercase");
     
+    fwrite($logFile, "Processing extra labels... \n");
     // "labels" can be passed via JSON. Add all labels as JIRA labels
     $labelsFromJSON = $cloudEvent->{'data'}->{'labels'};
-    fwrite($logFile,"Labels From JSON: $labelsFromJSON \n");
+    //fwrite($logFile, "Labels From JSON: $labelsFromJSON \n");
   
     if ($labelsFromJSON != null) {
+      fwrite($logFile, "Got some labels. Processing now. \n");
       foreach ($labelsFromJSON as $key => $value) {
         if (is_bool($value)) $value = var_export($value, true); // Transform boolean to string.
         // JIRA doesn't accept whitespace in labels. Replace whitespace with dashes
         $key = str_replace(' ', '-', $key);
         $value = str_replace(' ', '-', $value);
         
-        fwrite($logFile,"Label is: $key:$value \n");
+        //fwrite($logFile,"Label is: $key:$value \n");
         array_push($labels,"$key:$value"); 
       }
     }
     else {
-      fwrite($logFile, "Labels From JSON is null \n");
+      //fwrite($logFile, "Labels From JSON is null \n");
     }
 
     // Add labels to JIRA Object
     if (count($labels) > 0) $jiraTicketObj->fields->labels = $labels;
 
+    fwrite($logFile, "Done processing labels. Encoding ticket now. \n");
     $payload = json_encode($jiraTicketObj);
     
     
@@ -544,7 +551,7 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     $endTime = $cloudEvent->{'data'}->{'evaluationdetails'}->{'timeEnd'};
     $testStrategy = $cloudEvent->{'data'}->{'teststrategy'};
 
-    fwrite($logFile,"Finished processing problem inputs. Creating JIRA JSON now.\n");
+    fwrite($logFile,"Finished processing evaluation inputs. Creating JIRA JSON now.\n");
     
     // Build JSON for JIRA
     $jiraTicketObj = new stdClass();
