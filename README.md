@@ -22,6 +22,7 @@ You'll need the following information to use this plugin.
 1. JIRA API Token ([generate one here](https://id.atlassian.com/manage/api-tokens))
 1. JIRA Project Key. Take this from the URL. Eg. `PROJ` is the project code for `https://abc123.atlassian.net/projects/PROJ/issues`
 1. JIRA Issue Type eg. Task, Bug, Epic etc. Defaults to `Task`.
+1. Keptn base URL (eg. `http://localhost:8080` or however you've exposed Keptn)
 
 # Save JIRA Details as k8s Secret
 Paste your values into the command below (replacing `***`) and save the JIRA details into a secret called `jira-details` in the `keptn` namespace.
@@ -37,10 +38,18 @@ secret/jira-details created
 ```
 
 # Install JIRA Service
-Install the service & distributor:
+Install the service & distributor.
+
+Pull the `jira-service.yaml` and modify line `66` to reflect your keptn URL.
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/keptn-sandbox/jira-service/master/jira-service.yaml -f https://raw.githubusercontent.com/keptn-sandbox/jira-service/master/jira-distributor.yaml
+- name: KEPTN_DOMAIN
+  value: 'http://keptn-domain-here'
+```
+
+Apply the jira-service.yaml and the distributor:
+```
+kubectl apply -f jira-service.yaml -f https://raw.githubusercontent.com/keptn-sandbox/jira-service/master/jira-distributor.yaml
 ```
 
 Expected output:
@@ -70,13 +79,17 @@ Delete the `jira-details` secret, the distributor and service files:
 
 ```
 kubectl delete secret -n keptn jira-details
-kubectl delete -f https://raw.githubusercontent.com/keptn-sandbox/jira-service/master/jira-service.yaml -f https://raw.githubusercontent.com/keptn-sandbox/jira-service/master/jira-distributor.yaml
+kubectl delete -f jira-service.yaml -f https://raw.githubusercontent.com/keptn-sandbox/jira-service/master/jira-distributor.yaml
 ```
 
 # Compatibility Matrix
 
 | Keptn Version    | JIRA Version / API Version |
 |:----------------:|:----------------------:|
+|     0.7.3        |            Cloud (Classic and NextGen) / v2          |
+|     0.7.2        |            Cloud (Classic and NextGen) / v2          |
+|     0.7.1        |            Cloud (Classic and NextGen) / v2          |
+|     0.7.0        |            Cloud (Classic and NextGen) / v2          |
 |     0.6.1        |            Cloud (Classic and NextGen) / v2          |
 
 # Contributions, Enhancements, Issues or Questions

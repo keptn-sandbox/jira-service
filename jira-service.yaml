@@ -63,10 +63,7 @@ spec:
               key: DT_TENANT
               optional: true
         - name: KEPTN_DOMAIN
-          valueFrom:
-            configMapKeyRef:
-              name: keptn-domain
-              key: app_domain
+          value: 'http://keptn-domain-here'
 ---
 apiVersion: v1
 kind: Service
