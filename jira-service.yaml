@@ -64,6 +64,8 @@ spec:
               optional: true
         - name: KEPTN_DOMAIN
           value: 'http://keptn-domain-here'
+        - name: KEPTN_BRIDGE_URL
+          value: ''
 ---
 apiVersion: v1
 kind: Service

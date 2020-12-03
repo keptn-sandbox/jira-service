@@ -36,10 +36,16 @@ $jiraTicketForProblems = getenv("JIRA_TICKET_FOR_PROBLEMS") === 'true'? true : f
 $jiraTicketForEvaluations = getenv("JIRA_TICKET_FOR_EVALUATIONS") === 'true'? true : false;
 $dynatraceTenant = getenv("DT_TENANT");
 $keptnDomain = getenv("KEPTN_DOMAIN");
+$keptnBridgeURL = getenv("KEPTN_BRIDGE_URL");
 
 if ($jiraBaseURL == null || $jiraUsername == null || $jiraAPIToken == null || $jiraProjectKey == null || $jiraIssueType == null || $keptnDomain == null) {
     fwrite($logFile, "Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE and / or KEPTN_DOMAIN");
     exit("Missing mandatory input parameters JIRA_BASE_URL and / or JIRA_USERNAME and / or JIRA_API_TOKEN and / or JIRA_PROJECT_KEY and / or JIRA_ISSUE_TYPE and / or KEPTN_DOMAIN");
+}
+
+// If not set, default the bridge URL to the Keptn Domain
+if ($keptnBridgeURL == null || strlen($keptnBridgeURL) == 0) {
+    $keptnBridgeURL = $keptnDomain;
 }
 
 fwrite($logFile, "Got all input variables. Proceeding...\n");
@@ -95,7 +101,7 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     $keptnContext = $cloudEvent->{'shkeptncontext'};
     $keptnEventID = $cloudEvent->{'id'};
     $resultLowercase = $cloudEvent->{'data'}->{'result'};
-    $bridgeURL = "https://bridge.keptn.$keptnDomain/project/$keptnProject/$keptnService/$keptnContext/$keptnEventID";
+    $bridgeURL = "$keptnBridgeURL/project/$keptnProject/$keptnService/$keptnContext/$keptnEventID";
     
     fwrite($logFile, "Adding description link to Keptn's bridge... \n");
     // Add description link to Keptn's Bridge

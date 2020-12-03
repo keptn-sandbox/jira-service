@@ -47,6 +47,13 @@ Pull the `jira-service.yaml` and modify line `66` to reflect your keptn URL.
   value: 'http://keptn-domain-here'
 ```
 
+Optional: Set your `KEPTN_BRIDGE_URL` (if empty, defaults to `KEPTN_DOMAIN`). This is used to link back to the bridge from JIRA tickets.
+
+```
+- name: KEPTN_BRIDGE_URL`
+  value: 'http://keptn.mysite.com/bridge'
+```
+
 Apply the jira-service.yaml and the distributor:
 ```
 kubectl apply -f jira-service.yaml -f https://raw.githubusercontent.com/keptn-sandbox/jira-service/master/jira-distributor.yaml
