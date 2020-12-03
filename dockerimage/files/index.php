@@ -49,6 +49,14 @@ if ($keptnBridgeURL == null || strlen($keptnBridgeURL) == 0) {
     fwrite($logFile, "Keptn Bridge URL: $keptnBridgeURL \n");
 }
 
+fwrite($logFile, "Project Key: $jiraProjectKey \n");
+fwrite($logFile, "Issue Type: $jiraIssueType \n");
+fwrite($logFile, "Ticket for Problems: $jiraTicketForProblems \n");
+fwrite($logFile, "Ticket for Evaluations: $jiraTicketForEvaluations \n");
+fwrite($logFile, "Keptn Domain: $keptnDomain \n");
+fwrite($logFile, "Keptn Bridge URL: $keptnBridgeURL \n");
+
+
 fwrite($logFile, "Got all input variables. Proceeding...\n");
 
 if ($jiraTicketForProblems) fwrite($logFile, "Will create tickets for problems.\n");
