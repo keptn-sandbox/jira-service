@@ -77,7 +77,7 @@ keptn send event start-evaluation --project=* --stage=* --service=* --timeframe=
 A debug log is available in the `jira-service` pod at `/var/www/html/logs/jiraService.log`
 
 ```
-kubectl exec -itn keptn jira-service-*-* cat /var/www/html/logs/jiraService.log
+kubectl exec -itn keptn jira-service-*-* -- cat /var/www/html/logs/jiraService.log
 ```
 
 # Deleting This Service
