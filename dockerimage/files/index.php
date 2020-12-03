@@ -113,6 +113,8 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     $bridgeURL = "$keptnBridgeURL/project/$keptnProject/$keptnService/$keptnContext/$keptnEventID";
     
     fwrite($logFile, "Adding description link to Keptn's bridge... \n");
+    fwrite($logFile, "Bridge URL: $bridgeURL \n");
+    
     // Add description link to Keptn's Bridge
     $jiraTicketObj->fields->description .= "h2. For full output and history, check the [Keptn's Bridge|$bridgeURL].\n";
     
