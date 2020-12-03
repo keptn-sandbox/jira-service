@@ -566,6 +566,7 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     // Build JSON for JIRA
     $jiraTicketObj = new stdClass();
     fwrite($logFile,"Got here 1\n");
+    fwrite($logFile,"JIRA Project Key: $jiraProjectKey \n");
     $jiraTicketObj->fields->project->key = $jiraProjectKey;
     fwrite($logFile,"Got here 2\n");
     $jiraTicketObj->fields->summary = "[EVALUATION] $keptnProject - $keptnService - $keptnStage Result: $result";
