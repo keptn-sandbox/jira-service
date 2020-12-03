@@ -100,6 +100,13 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
   
     $keptnDomain = getenv("KEPTN_DOMAIN");
     $dynatraceTenant = getenv("DT_TENANT");
+    $keptnBridgeURL = getenv("KEPTN_BRIDGE_URL");
+    // If not set, default the bridge URL to the Keptn Domain
+    if ($keptnBridgeURL == null || strlen($keptnBridgeURL) == 0) {
+      $keptnBridgeURL = $keptnDomain;
+      fwrite($logFile, "Keptn Bridge URL: $keptnBridgeURL \n");
+    }
+
     $jiraBaseURL = "$jiraBaseURL/rest/api/2/issue";
     // Base64 encode the JIRA username and password
     $encodedKey = base64_encode($jiraUsername . ':' . $jiraAPIToken);
