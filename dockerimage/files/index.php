@@ -46,6 +46,7 @@ if ($jiraBaseURL == null || $jiraUsername == null || $jiraAPIToken == null || $j
 // If not set, default the bridge URL to the Keptn Domain
 if ($keptnBridgeURL == null || strlen($keptnBridgeURL) == 0) {
     $keptnBridgeURL = $keptnDomain;
+    fwrite($logFile, "Keptn Bridge URL: $keptnBridgeURL \n");
 }
 
 fwrite($logFile, "Got all input variables. Proceeding...\n");
@@ -561,6 +562,8 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
     
+    fwrite($logFile,"Got here 1\n");
+    
     $jiraTicketObj->fields->description .= "||*Result*||*Score*||\n";
     /* Emojis via API don't follow the UI standard.
      * (/) = :check_mark:
@@ -570,6 +573,9 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     if ($result == "PASS") $result = "$result (/)";
     if ($result == "WARNING") $result = "$result (!)";
     if ($result == "FAIL") $result = "$result (x)";
+    
+    fwrite($logFile,"Got here 2\n");
+    
     $jiraTicketObj->fields->description .= "|$result|$score|\n\n";
     $jiraTicketObj->fields->description .= "*Start Time:* $startTime\n";
     $jiraTicketObj->fields->description .= "*End Time:* $endTime\n";
