@@ -190,6 +190,8 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
     $jiraRemoteLinkURL = "$jiraBaseURL/$ticketKey/remotelink";
     
     $payloadObj = new stdClass();
+    $payloadObj->object = new stdClass();
+    $payloadObj->object->icon = new stdClass();
     $payloadObj->object->url = $bridgeURL;
     $payloadObj->object->title = "Keptn's Bridge";
     $payloadObj->object->icon->url16x16 = "https://raw.githubusercontent.com/keptn/community/master/logos/keptn-small.png";
@@ -265,12 +267,16 @@ function createJIRATicket($jiraBaseURL, $jiraUsername, $jiraAPIToken, $jiraTicke
         
         $jiraParentTicketKeyURL = "$jiraBaseURL/$ticketKey";
         $issueLinkObj = new stdClass();
+        $issueLinkObj->add = new stdClass();
+        $issueLinkObj->add->type = new stdClass();
+        $issueLinkObj->add->inwardIssue = new stdClass();
         $issueLinkObj->add->type->name = "Problem/Incident";
         $issueLinkObj->add->inwardIssue->key = $labelsFromJSON->jira_issue; // Parent issue
         $issueLinks = array($issueLinkObj);
 
         // Build Ticket Linking Payload
         $payloadObj = new stdClass();
+        $payloadObj->update = new stdClass();
         $payloadObj->update->issuelinks = $issueLinks;
         $payload = json_encode($payloadObj);
         
@@ -482,11 +488,14 @@ if ($jiraTicketForProblems && $eventType == "sh.keptn.event.problem.open" && $ev
     
     // Build JSON for JIRA
     $jiraTicketObj = new stdClass();
+    // Define empty classes
+    $jiraTicketObj->fields = new stdClass();
+    $jiraTicketObj->fields->project = new stdClass();
+    $jiraTicketObj->fields->issuetype = new stdClass();
     $jiraTicketObj->fields->project->key = $jiraProjectKey;
     $jiraTicketObj->fields->summary = "[PROBLEM] $eventProblemTitle";
-    $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
     $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
-    $jiraTicketObj->fields->description .= "$eventImpactedEntity\n\n";
+    $jiraTicketObj->fields->description = "$eventImpactedEntity\n\n";
     
     // Print problem details
     $jiraTicketObj->fields->description .= "\n*Problem Details*\n";
@@ -565,6 +574,9 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     
     // Build JSON for JIRA
     $jiraTicketObj = new stdClass();
+    $jiraTicketObj->fields = new stdClass();
+    $jiraTicketObj->fields->project = new stdClass();
+    $jiraTicketObj->fields->issuetype = new stdClass();
     fwrite($logFile,"Got here 1\n");
     fwrite($logFile,"JIRA Project Key: $jiraProjectKey \n");
     $jiraTicketObj->fields->project->key = $jiraProjectKey;
