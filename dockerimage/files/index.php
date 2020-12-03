@@ -557,12 +557,17 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
     
     // Build JSON for JIRA
     $jiraTicketObj = new stdClass();
-    $jiraTicketObj->fields->project->key = $jiraProjectKey;
-    $jiraTicketObj->fields->summary = "[EVALUATION] $keptnProject - $keptnService - $keptnStage Result: $result";
-    $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
-    $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
-    
     fwrite($logFile,"Got here 1\n");
+    $jiraTicketObj->fields->project->key = $jiraProjectKey;
+    fwrite($logFile,"Got here 2\n");
+    $jiraTicketObj->fields->summary = "[EVALUATION] $keptnProject - $keptnService - $keptnStage Result: $result";
+    fwrite($logFile,"Got here 3\n");
+    $jiraTicketObj->fields->description = ""; // Ticket Body goes here...
+    fwrite($logFile,"Got here 4\n");
+    $jiraTicketObj->fields->issuetype->name = $jiraIssueType;
+    fwrite($logFile,"Got here 5\n");
+    
+    
     
     $jiraTicketObj->fields->description .= "||*Result*||*Score*||\n";
     /* Emojis via API don't follow the UI standard.
@@ -570,11 +575,12 @@ if ($jiraTicketForEvaluations && $eventType == "sh.keptn.events.evaluation-done"
      * (!) = :warning:
      * (x) = :cross_mark:
      */
+    fwrite($logFile,"Got here 6\n");
     if ($result == "PASS") $result = "$result (/)";
     if ($result == "WARNING") $result = "$result (!)";
     if ($result == "FAIL") $result = "$result (x)";
     
-    fwrite($logFile,"Got here 2\n");
+    fwrite($logFile,"Got here 7\n");
     
     $jiraTicketObj->fields->description .= "|$result|$score|\n\n";
     $jiraTicketObj->fields->description .= "*Start Time:* $startTime\n";
