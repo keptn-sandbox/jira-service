@@ -1,6 +1,6 @@
 # JIRA Service
 
-Use this branch for Keptn `0.8.0` only.
+Use this branch for Keptn `0.8.1` only.
 
 This service creates JIRA issues when Keptn performs a quality gate evaluation or a problem is raised.
 
