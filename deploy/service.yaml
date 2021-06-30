@@ -1,0 +1,133 @@
+---
+# Deployment of our jira-service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jira-service
+  namespace: keptn
+spec:
+  selector:
+    matchLabels:
+      run: jira-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: jira-service
+    spec:
+      containers:
+        - name: jira-service
+          image: adamgardnerdt/kjiratemp4:0.8.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: CONFIGURATION_SERVICE
+              value: 'http://configuration-service:8080'
+            - name: JIRA_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: jira-details
+                  key: jira-base-url
+            - name: JIRA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: jira-details
+                  key: jira-username
+            - name: JIRA_REPORTER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: jira-details
+                  key: jira-reporter-user-id
+            - name: JIRA_ASSIGNEE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: jira-details
+                  key: jira-assignee-user-id
+            - name: JIRA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: jira-details
+                  key: jira-api-token
+            - name: JIRA_PROJECT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jira-details
+                  key: jira-project-key
+            - name: JIRA_ISSUE_TYPE
+              valueFrom:
+                secretKeyRef:
+                  name: jira-details
+                  key: jira-issue-type
+            - name: JIRA_TICKET_FOR_PROBLEMS
+              valueFrom:
+                secretKeyRef:
+                  name: jira-details
+                  key: jira-create-ticket-for-problems
+            - name: JIRA_TICKET_FOR_EVALUATIONS
+              valueFrom:
+                secretKeyRef:
+                  name: jira-details
+                  key: jira-create-ticket-for-evaluations
+            - name: DT_TENANT
+              valueFrom:
+                secretKeyRef:
+                  name: dynatrace
+                  key: DT_TENANT
+                  optional: true
+            - name: DT_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dynatrace
+                  key: DT_API_TOKEN
+                  optional: true
+            - name: KEPTN_DOMAIN
+              value: 'http://1.2.3.4'
+            - name: KEPTN_BRIDGE_URL
+              value: 'http://1.2.3.4/bridge'
+            - name: SEND_EVENT
+              value: 'true'
+            - name: DEBUG
+              value: 'true'
+              
+        - name: distributor
+          image: keptn/distributor:0.8.0
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 10999
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "25m"
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+          env:
+            - name: PUBSUB_URL
+              value: 'nats://keptn-nats-cluster'
+            - name: PUBSUB_TOPIC
+              value: 'sh.keptn.event.evaluation.finished,sh.keptn.event.remediation.finished'
+            - name: PUBSUB_RECIPIENT
+              value: '127.0.0.1'
+      serviceAccountName: keptn-default
+---
+# Expose jira-service via Port 8080 within the cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: jira-service
+  namespace: keptn
+  labels:
+    run: jira-service
+spec:
+  ports:
+    - port: 8080
+      protocol: TCP
+  selector:
+    run: jira-service
