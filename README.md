@@ -1,5 +1,7 @@
 # JIRA Service
 
+Use this branch for Keptn `0.8.0` only.
+
 This service creates JIRA issues when Keptn performs a quality gate evaluation or a problem is raised.
 
 The service will also comment on & close the issue (set the status to `Done`) whenever a problem `resolved` or `closed` status is received.
