@@ -118,7 +118,7 @@ If you want to get more insights into processing those CloudEvents or even defin
 * Watch the deployment using `kubectl`: `kubectl -n keptn get deployment jira-service -o wide`
 * Get logs using `kubectl`: `kubectl -n keptn logs deployment/jira-service -f`
 * Watch the deployed pods using `kubectl`: `kubectl -n keptn get pods -l run=jira-service`
-* Deploy the service using [Skaffold](https://skaffold.dev/): `skaffold run --default-repo=your-docker-registry --tail` (Note: Replace `your-docker-registry` with your DockerHub username; also make sure to adapt the image name in [skaffold.yaml](skaffold.yaml))
+* Deploy the service using [Skaffold](https://skaffold.dev/): `skaffold run --default-repo=your-docker-registry --tail` (Note: Replace `your-docker-registry` with your DockerHub username)
 
 
 ### Testing Cloud Events
