@@ -20,7 +20,7 @@ You'll need the following information to use this plugin.
 1. JIRA Base URL (without trailing slash) eg. `https://abc123.atlassian.net`
 1. JIRA Username eg. `joe.smith@example.com`
 1. JIRA ID for Ticket Reporter (see below for how to retrieve)
-1. JIRA ID for Ticket Assignee (if different from reporter ID)
+1. JIRA ID for Ticket Assignee (can be same as reporter ID)
 1. JIRA API Token ([generate one here](https://id.atlassian.com/manage/api-tokens))
 1. JIRA Project Key. Take this from the URL. Eg. `PROJ` is the project code for `https://abc123.atlassian.net/projects/PROJ/issues`
 1. JIRA Issue Type eg. Task, Bug, Epic etc. Defaults to `Task`.
