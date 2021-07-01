@@ -1,46 +1,3 @@
-# ServiceAccount, Role, RoleBinding
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: jira-service
-  namespace: keptn
-  labels:
-    app: keptn
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: jira-service-read-secret
-  namespace: keptn
-  labels:
-    app: keptn
-rules:
-  - apiGroups:
-      - ""
-    resources:
-      - secrets
-    verbs:
-      - get
-    resourceNames:
-      - "dynatrace"
-      - "jira-details"
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: jira-service-read-secret
-  namespace: keptn
-  labels:
-    app: keptn
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: jira-service-read-secret
-subjects:
-  - kind: ServiceAccount
-    name: jira-service
-    namespace: keptn
 ---
 # Deployment of our jira-service
 apiVersion: apps/v1
@@ -60,7 +17,7 @@ spec:
     spec:
       containers:
         - name: jira-service
-          image: keptnsandbox/jira-service:0.8.0
+          image: keptnsandbox/jira-service:latest
           ports:
             - containerPort: 8080
           env:
@@ -124,14 +81,20 @@ spec:
                   key: DT_API_TOKEN
                   optional: true
             - name: KEPTN_DOMAIN
-              value: 'http://1.2.3.4'
+              valueFrom:
+                secretKeyRef:
+                  name: jira-details
+                  key: keptn-domain
             - name: KEPTN_BRIDGE_URL
-              value: 'http://1.2.3.4/bridge'
+              valueFrom:
+                secretKeyRef:
+                  name: jira-details
+                  key: keptn-bridge-url
+                  optional: true
             - name: SEND_EVENT
               value: 'true'
             - name: DEBUG
               value: 'false'
-              
         - name: distributor
           image: keptn/distributor:0.8.0
           livenessProbe:
@@ -154,7 +117,7 @@ spec:
             - name: PUBSUB_URL
               value: 'nats://keptn-nats-cluster'
             - name: PUBSUB_TOPIC
-              value: 'sh.keptn.event.evaluation.finished,sh.keptn.event.remediation.finished'
+              value: 'sh.keptn.>'
             - name: PUBSUB_RECIPIENT
               value: '127.0.0.1'
       serviceAccountName: keptn-default

@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: 0.8.0
+description: Helm Chart for the keptn jira-service
+name: jira-service
+type: application
+version: 0.8.0

@@ -32,11 +32,11 @@ COPY . .
 
 # Build the command inside the container.
 # (You may fetch or manage dependencies here, either manually or with a tool like "godep".)
-RUN GOOS=linux go build -ldflags '-linkmode=external' $BUILDFLAGS -v -o jira-service cmd/jira-service/main.go
+RUN GOOS=linux go build -ldflags '-linkmode=external' $BUILDFLAGS -v -o jira-service
 
 # Use a Docker multi-stage build to create a lean production image.
 # https://docs.docker.com/develop/develop-images/multistage-build/#use-multi-stage-builds
-FROM alpine:3.11
+FROM alpine:3.13
 ENV ENV=production
 
 # Install extra packages
