@@ -42,6 +42,8 @@ kubectl -n keptn create secret generic jira-details \
 --from-literal="keptn-bridge-url=https://1.2.3.4/bridge" \
 --from-literal="jira-base-url=***" \
 --from-literal="jira-username=***" \
+--from-literal="jira-reporter-user-id=***" \
+--from-literal="jira-assignee-user-id=***" \
 --from-literal="jira-api-token=***" \
 --from-literal=""
 --from-literal="jira-project-key=***" \
