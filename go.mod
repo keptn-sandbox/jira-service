@@ -1,4 +1,4 @@
-module github.com/keptnsandbox/jira-service
+module github.com/keptn-sandbox/jira-service
 
 go 1.16
 
