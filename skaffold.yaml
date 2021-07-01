@@ -2,7 +2,7 @@ apiVersion: skaffold/v1beta13
 kind: Config
 build:
   artifacts:
-    - image: keptnsandbox/jira-service
+    - image: keptn-sandbox/jira-service
       docker:
         dockerfile: Dockerfile
         buildArgs:
