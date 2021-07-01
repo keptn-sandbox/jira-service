@@ -45,7 +45,6 @@ kubectl -n keptn create secret generic jira-details \
 --from-literal="jira-reporter-user-id=***" \
 --from-literal="jira-assignee-user-id=***" \
 --from-literal="jira-api-token=***" \
---from-literal=""
 --from-literal="jira-project-key=***" \
 --from-literal="jira-issue-type=Task" \
 --from-literal="jira-create-ticket-for-problems=true" \
