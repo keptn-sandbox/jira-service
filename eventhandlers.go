@@ -34,7 +34,7 @@ func HandleEvaluationFinishedEvent(myKeptn *keptnv2.Keptn, incomingEvent cloudev
 	}
 }
 
-func HandleRemediationFinishedEvent(myKeptn *keptnv2.Keptn, incomingEvent cloudevents.Event, data *keptnv2.RemediationFinishedEventData) {
+func HandleRemediationFinishedEvent(myKeptn *keptnv2.Keptn, incomingEvent cloudevents.Event, data *keptnv2.ActionFinishedEventData) {
 	log.Printf("[eventhandlers.go] Handling remediation.finished event: %s", incomingEvent.Context.GetID())
 
 	if !JIRA_DETAILS.TicketForProblems {
@@ -60,7 +60,7 @@ func HandleRemediationFinishedEvent(myKeptn *keptnv2.Keptn, incomingEvent cloude
 *   REMEDIATION.FINISHED SPECIFIC METHODS
 *********************************************/
 
-func createCustomPropertiesForRemediationFinishedEvents(myKeptn *keptnv2.Keptn, data *keptnv2.RemediationFinishedEventData, ticketURL string) map[string]string {
+func createCustomPropertiesForRemediationFinishedEvents(myKeptn *keptnv2.Keptn, data *keptnv2.ActionFinishedEventData, ticketURL string) map[string]string {
 	var customProperties = make(map[string]string)
 
 	customProperties["Result"] = string(data.Result)
@@ -80,7 +80,7 @@ func createCustomPropertiesForRemediationFinishedEvents(myKeptn *keptnv2.Keptn, 
 //
 // Note: This method might be replaced in future if we can send events that the dynatrace-service consumes
 // As the dynatrace-service contains nice helper methods to send events.
-func sendEventForRemediationFinishedEvents(eventDestination string, eventType string, ticketURL string, data *keptnv2.RemediationFinishedEventData, myKeptn *keptnv2.Keptn) {
+func sendEventForRemediationFinishedEvents(eventDestination string, eventType string, ticketURL string, data *keptnv2.ActionFinishedEventData, myKeptn *keptnv2.Keptn) {
 	log.Println("[eventhandlers.go] Sending event to:", eventDestination, " as type:", eventType)
 
 	// Split ticketURL by last forward slash to get the project key
@@ -133,7 +133,7 @@ func sendEventForRemediationFinishedEvents(eventDestination string, eventType st
 
 }
 
-func createJIRATicketForRemediationFinished(myKeptn *keptnv2.Keptn, data *keptnv2.RemediationFinishedEventData) string {
+func createJIRATicketForRemediationFinished(myKeptn *keptnv2.Keptn, data *keptnv2.ActionFinishedEventData) string {
 
 	log.Println("[eventhandlers.go] Creating JIRA Body details for remediation.finished...")
 
@@ -178,7 +178,7 @@ func createJIRATicketForRemediationFinished(myKeptn *keptnv2.Keptn, data *keptnv
 	return issueKey
 }
 
-func createJIRALabelsForRemediationFinishedEvents(data *keptnv2.RemediationFinishedEventData) []string {
+func createJIRALabelsForRemediationFinishedEvents(data *keptnv2.ActionFinishedEventData) []string {
 	//[]string{"foo:bar", "this:that"}
 	labels := []string{}
 
@@ -215,7 +215,7 @@ func createJIRALabelsForRemediationFinishedEvents(data *keptnv2.RemediationFinis
 	return labels
 }
 
-func createAttachRulesForRemediationFinishedEvents(data *keptnv2.RemediationFinishedEventData) DtAttachRules {
+func createAttachRulesForRemediationFinishedEvents(data *keptnv2.ActionFinishedEventData) DtAttachRules {
 	attachRule := DtAttachRules{
 		TagRule: []DtTagRule{
 			{
