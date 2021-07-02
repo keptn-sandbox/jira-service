@@ -1,10 +1,7 @@
 # README
 
-Do not deploy from this branch. This branch is a development branch and should be considered unstable.
 
-Switch to the `release-*` branch that matches your Keptn version.
-
-For example, `release-0.8.0` should be used when you're running Keptn `0.8.0`.
+Use this branch to deploy `jira-service` if you're running Keptn `0.8.1`.
 
 # jira-service
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/keptn-sandbox/jira-service)
