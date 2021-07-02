@@ -1,7 +1,7 @@
 package main
 
 /*
- * Reacts to sh.keptn.event.evaluation.finished and sh.keptn.event.remediation.finished
+ * Reacts to sh.keptn.event.evaluation.finished and sh.keptn.events.problem
  */
 
 import (
@@ -68,13 +68,13 @@ func processKeptnCloudEvent(ctx context.Context, event cloudevents.Event) error 
 
 	log.Println("[main.go] Received Cloud Event Type: " + event.Type())
 
-	if event.Type() == "sh.keptn.event.remediation.finished" { // sh.keptn.event.remediation.finished
-		log.Println("Processing remediation.finished Event")
+	if event.Type() == "sh.keptn.events.problem" { // sh.keptn.events.problem
+		log.Println("Processing sh.keptn.events.problem Event")
 
 		eventData := &keptnv2.ActionFinishedEventData{}
 		parseKeptnCloudEventPayload(event, eventData)
 
-		HandleRemediationFinishedEvent(myKeptn, event, eventData)
+		HandleProblemEvent(myKeptn, event, eventData)
 	}
 	if event.Type() == "sh.keptn.event.evaluation.finished" { // sh.keptn.event.evaluation.finished
 		log.Println("Processing evaluation.finished Event")

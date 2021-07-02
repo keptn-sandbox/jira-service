@@ -34,21 +34,21 @@ func HandleEvaluationFinishedEvent(myKeptn *keptnv2.Keptn, incomingEvent cloudev
 	}
 }
 
-func HandleRemediationFinishedEvent(myKeptn *keptnv2.Keptn, incomingEvent cloudevents.Event, data *keptnv2.ActionFinishedEventData) {
-	log.Printf("[eventhandlers.go] Handling remediation.finished event: %s", incomingEvent.Context.GetID())
+func HandleProblemEvent(myKeptn *keptnv2.Keptn, incomingEvent cloudevents.Event, data *keptnv2.ActionFinishedEventData) {
+	log.Printf("[eventhandlers.go] Handling problem event: %s", incomingEvent.Context.GetID())
 
 	if !JIRA_DETAILS.TicketForProblems {
-		log.Println("[eventhandlers.go] TicketForProblems flag is set to false. Got a remediation.finished from Keptn but doing nothing. If you want a ticket, set flag to true")
+		log.Println("[eventhandlers.go] TicketForProblems flag is set to false. Got a problem from Keptn but doing nothing. If you want a ticket, set flag to true")
 		return
 	}
 
-	issueKey := createJIRATicketForRemediationFinished(myKeptn, data)
+	issueKey := createJIRATicketForProblem(myKeptn, data)
 	ticketURL := JIRA_DETAILS.BaseURL + "/browse/" + issueKey
 
 	// If the SEND_EVENT flag is set in service.yaml send an event to the relevant tool
 	SEND_EVENT, _ := strconv.ParseBool(os.Getenv("SEND_EVENT"))
 	if SEND_EVENT {
-		sendEventForRemediationFinishedEvents("dynatrace", "CUSTOM_INFO", ticketURL, data, myKeptn)
+		sendEventForProblemEvents("dynatrace", "CUSTOM_INFO", ticketURL, data, myKeptn)
 	}
 }
 
@@ -57,10 +57,10 @@ func HandleRemediationFinishedEvent(myKeptn *keptnv2.Keptn, incomingEvent cloude
 //*******************************
 
 /********************************************
-*   REMEDIATION.FINISHED SPECIFIC METHODS
+*   PROBLEM SPECIFIC METHODS
 *********************************************/
 
-func createCustomPropertiesForRemediationFinishedEvents(myKeptn *keptnv2.Keptn, data *keptnv2.ActionFinishedEventData, ticketURL string) map[string]string {
+func createCustomPropertiesForProblemEvents(myKeptn *keptnv2.Keptn, data *keptnv2.ActionFinishedEventData, ticketURL string) map[string]string {
 	var customProperties = make(map[string]string)
 
 	customProperties["Result"] = string(data.Result)
@@ -80,7 +80,7 @@ func createCustomPropertiesForRemediationFinishedEvents(myKeptn *keptnv2.Keptn, 
 //
 // Note: This method might be replaced in future if we can send events that the dynatrace-service consumes
 // As the dynatrace-service contains nice helper methods to send events.
-func sendEventForRemediationFinishedEvents(eventDestination string, eventType string, ticketURL string, data *keptnv2.ActionFinishedEventData, myKeptn *keptnv2.Keptn) {
+func sendEventForProblemEvents(eventDestination string, eventType string, ticketURL string, data *keptnv2.ActionFinishedEventData, myKeptn *keptnv2.Keptn) {
 	log.Println("[eventhandlers.go] Sending event to:", eventDestination, " as type:", eventType)
 
 	// Split ticketURL by last forward slash to get the project key
@@ -98,9 +98,9 @@ func sendEventForRemediationFinishedEvents(eventDestination string, eventType st
 		dtInfoEvent.EventType = eventType
 		dtInfoEvent.Source = "jira-service"
 		dtInfoEvent.Title = "Ticket Created: " + projectKey
-		dtInfoEvent.AttachRules = createAttachRulesForRemediationFinishedEvents(data)
+		dtInfoEvent.AttachRules = createAttachRulesForProblemEvents(data)
 		dtInfoEvent.Description = "Keptn Remediation Attempt"
-		customProperties := createCustomPropertiesForRemediationFinishedEvents(myKeptn, data, ticketURL)
+		customProperties := createCustomPropertiesForProblemEvents(myKeptn, data, ticketURL)
 		dtInfoEvent.CustomProperties = customProperties
 
 		//Encode the data
@@ -133,9 +133,9 @@ func sendEventForRemediationFinishedEvents(eventDestination string, eventType st
 
 }
 
-func createJIRATicketForRemediationFinished(myKeptn *keptnv2.Keptn, data *keptnv2.ActionFinishedEventData) string {
+func createJIRATicketForProblem(myKeptn *keptnv2.Keptn, data *keptnv2.ActionFinishedEventData) string {
 
-	log.Println("[eventhandlers.go] Creating JIRA Body details for remediation.finished...")
+	log.Println("[eventhandlers.go] Creating JIRA Body details for problem...")
 
 	// Build summary field (JIRA ticket title)
 	summary := "[REMEDIATION] " + data.GetProject() + " - " + data.GetService() + " - " + data.GetStage() + " - Result: " + string(data.Result)
@@ -171,14 +171,14 @@ func createJIRATicketForRemediationFinished(myKeptn *keptnv2.Keptn, data *keptnv
 	description += "[Link To Keptn's Bridge|" + bridgeURL + "]"
 
 	// Build map of labels which we take from the cloudevent, which we then attach to the JIRA ticket
-	labels := createJIRALabelsForRemediationFinishedEvents(data)
+	labels := createJIRALabelsForProblemEvents(data)
 
 	// Send the POST to JIRA
 	issueKey := createJIRATicket(summary, description, labels)
 	return issueKey
 }
 
-func createJIRALabelsForRemediationFinishedEvents(data *keptnv2.ActionFinishedEventData) []string {
+func createJIRALabelsForProblemEvents(data *keptnv2.ActionFinishedEventData) []string {
 	//[]string{"foo:bar", "this:that"}
 	labels := []string{}
 
@@ -215,7 +215,7 @@ func createJIRALabelsForRemediationFinishedEvents(data *keptnv2.ActionFinishedEv
 	return labels
 }
 
-func createAttachRulesForRemediationFinishedEvents(data *keptnv2.ActionFinishedEventData) DtAttachRules {
+func createAttachRulesForProblemEvents(data *keptnv2.ActionFinishedEventData) DtAttachRules {
 	attachRule := DtAttachRules{
 		TagRule: []DtTagRule{
 			{
@@ -443,7 +443,7 @@ func createJIRATicketForEvaluationFinished(myKeptn *keptnv2.Keptn, data *keptnv2
 /**************************************
 *         GENERIC METHODS
 ***************************************/
-// Shared Function between evaluations and remediation finished events to create a JIRA ticket
+// Shared Function between evaluations and problem events to create a JIRA ticket
 // By this point, summary and description are correctly formulated
 // Depending on the type of ticket so this function can be shared
 // As it just sends the POST to JIRA
