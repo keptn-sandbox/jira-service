@@ -368,7 +368,7 @@ func createJIRALabelsForEvaluationFinishedEvents(data *keptnv2.EvaluationFinishe
 	labels = append(labels, "keptn_service:"+value)
 
 	// Add result as a label (pass, warning or fail)
-	labels = append(labels, "keptn_result:"+data.Evaluation.Result)
+	labels = append(labels, "keptn_result:"+string(data.Result))
 
 	for labelKey, labelValue := range data.Labels {
 		// Replace spaces with dashes for the Key and Value
@@ -425,7 +425,7 @@ func createJIRATicketForEvaluationFinished(myKeptn *keptnv2.Keptn, data *keptnv2
 	// Add Keptn Context
 	description += "Keptn Context ID: " + myKeptn.KeptnContext + "\n"
 
-	description += "Message: " + data.EventData.Message
+	description += "Message: " + data.EventData.Message + "\n"
 
 	// Add link to Keptn Bridge
 	bridgeURL := KEPTN_DETAILS.BridgeURL + "/project/" + data.EventData.GetProject() + "/sequence/" + myKeptn.KeptnContext
