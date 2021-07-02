@@ -66,9 +66,7 @@ func processKeptnCloudEvent(ctx context.Context, event cloudevents.Event) error 
 
 	setupAndDebug(myKeptn, event)
 
-	if DEBUG {
-		log.Println("Received Cloud Event Type: " + event.Type())
-	}
+	log.Println("[main.go] Received Cloud Event Type: " + event.Type())
 
 	switch event.Type() {
 
@@ -187,7 +185,7 @@ func setKeptnDetails() {
 }
 
 func setupAndDebug(myKeptn *keptnv2.Keptn, incomingEvent cloudevents.Event) {
-	log.Printf("[main.go] gotEvent(%s): %s - %s", incomingEvent.Type(), myKeptn.KeptnContext, incomingEvent.Context.GetID())
+	log.Println("[main.go] gotEvent(%s): %s - %s", incomingEvent.Type(), myKeptn.KeptnContext, incomingEvent.Context.GetID())
 
 	// Get Debug Mode
 	// This is set in the service.yaml as DEBUG "true"
