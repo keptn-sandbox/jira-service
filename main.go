@@ -67,10 +67,13 @@ func processKeptnCloudEvent(ctx context.Context, event cloudevents.Event) error 
 	setupAndDebug(myKeptn, event)
 
 	log.Println("[main.go] Received Cloud Event Type: " + event.Type())
+	log.Println("[main.go] Printing generated FinishedEventType where param is EvaluationTaskName")
+	log.Println("[main.go]" + keptnv2.GetFinishedEventType(keptnv2.EvaluationTaskName))
 
 	switch event.Type() {
 
 	// Listen for remediation.finished
+	case keptnv2.Get
 	case keptnv2.GetFinishedEventType(keptnv2.ActionTaskName): // sh.keptn.event.remediation.finished
 		log.Println("Processing Remediation.Finished Event")
 		// Please note: Processing .started, .status.changed and .finished events is only recommended when you want to
