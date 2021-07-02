@@ -14,8 +14,6 @@ This implements a jira-service for Keptn. If you want to learn more about Keptn 
 
 ## Compatibility Matrix
 
-*Please fill in your versions accordingly*
-
 | Keptn Version    | [jira-service Docker Image](https://hub.docker.com/r/keptnsandbox/jira-service/tags) |
 |:----------------:|:----------------------------------------:|
 |       0.8.5      | keptnsandbox/jira-service:0.8.5 |
