@@ -77,6 +77,18 @@ kubectl -n keptn get deployment jira-service -o wide
 kubectl -n keptn get pods -l run=jira-service
 ```
 
+### Logs
+Retrieve container logs with:
+
+```
+kubectl logs -n keptn -l run=jira-service -c jira-service
+```
+
+Retrieve distributor logs with:
+```
+kubectl logs -n keptn -l run=jira-service -c distributor
+```
+
 ### Up- or Downgrading
 
 Adapt and use the following command in case you want to up- or downgrade your installed version (specified by the `$VERSION` placeholder):
