@@ -394,7 +394,8 @@ func createJIRATicketForEvaluationFinished(myKeptn *keptnv2.Keptn, data *keptnv2
 	log.Println("[eventhandlers.go] Creating JIRA Body details for evaluation.finished...")
 
 	// Build summary field (JIRA ticket title)
-	summary := "[EVALUATION] " + data.EventData.GetProject() + " - " + data.EventData.GetService() + " - " + data.EventData.GetStage() + " - Result: " + data.Evaluation.Result
+	stringResult := string(data.Result)
+	summary := "[EVALUATION] " + data.EventData.GetProject() + " - " + data.EventData.GetService() + " - " + data.EventData.GetStage() + " - Result: " + stringResult
 
 	// Build description field (JIRA ticket body)
 	// Build result table
@@ -406,14 +407,14 @@ func createJIRATicketForEvaluationFinished(myKeptn *keptnv2.Keptn, data *keptnv2
 	 * (x) = :cross_mark:
 	 */
 	result := ""
-	if data.Evaluation.Result == "pass" {
-		result += data.Evaluation.Result + " (/)"
-	} else if data.Evaluation.Result == "warning" {
-		result += data.Evaluation.Result + " (!)"
-	} else if data.Evaluation.Result == "fail" {
-		result += data.Evaluation.Result + " (x)"
+	if stringResult == "pass" {
+		result += stringResult + " (/)"
+	} else if stringResult == "warning" {
+		result += stringResult + " (!)"
+	} else if stringResult == "fail" {
+		result += stringResult + " (x)"
 	} else {
-		result += data.Evaluation.Result
+		result += stringResult
 	}
 	description += "|" + result + "|" + fmt.Sprint(data.Evaluation.Score) + "|" + "\n\n"
 
@@ -423,6 +424,8 @@ func createJIRATicketForEvaluationFinished(myKeptn *keptnv2.Keptn, data *keptnv2
 
 	// Add Keptn Context
 	description += "Keptn Context ID: " + myKeptn.KeptnContext + "\n"
+
+	description += "Message: " + data.EventData.Message
 
 	// Add link to Keptn Bridge
 	bridgeURL := KEPTN_DETAILS.BridgeURL + "/project/" + data.EventData.GetProject() + "/sequence/" + myKeptn.KeptnContext
