@@ -10,7 +10,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"strings"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2" // make sure to use v2 cloudevents here
 	"github.com/kelseyhightower/envconfig"
@@ -69,7 +68,7 @@ func processKeptnCloudEvent(ctx context.Context, event cloudevents.Event) error 
 
 	log.Println("[main.go] Received Cloud Event Type: " + event.Type())
 
-	if strings.HasSuffix(event.Type(), ".remediation.finished") { // sh.keptn.event.STAGENAME.remediation.finished
+	if event.Type() == "sh.keptn.event.remediation.finished" { // sh.keptn.event.remediation.finished
 		log.Println("Processing remediation.finished Event")
 
 		eventData := &keptnv2.ActionFinishedEventData{}
@@ -77,7 +76,7 @@ func processKeptnCloudEvent(ctx context.Context, event cloudevents.Event) error 
 
 		HandleRemediationFinishedEvent(myKeptn, event, eventData)
 	}
-	if strings.HasSuffix(event.Type(), ".evaluation.finished") { //sh.keptn.event.STAGENAME.evaluation.finished
+	if event.Type() == "sh.keptn.event.evaluation.finished" { // sh.keptn.event.evaluation.finished
 		log.Println("Processing evaluation.finished Event")
 
 		eventData := &keptnv2.EvaluationFinishedEventData{}
