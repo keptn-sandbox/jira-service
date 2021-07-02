@@ -24,7 +24,8 @@ You'll need the following information to use this plugin.
 1. JIRA API Token ([generate one here](https://id.atlassian.com/manage/api-tokens))
 1. JIRA Project Key. Take this from the URL. Eg. `PROJ` is the project code for `https://abc123.atlassian.net/projects/PROJ/issues`
 1. JIRA Issue Type eg. Task, Bug, Epic etc. Defaults to `Task`.
-1. Keptn base URL (eg. `http://localhost:8080` or however you've exposed Keptn)
+1. Keptn base URL (eg. `https://example.com` or however you've exposed Keptn)
+1. Keptn bridge URL (eg. `https://example.com/bridge`)
 
 ## Retrieve User IDs (IMPORTANT)
 JIRA now require the User ID for both the ticket reporter and the assignee.
