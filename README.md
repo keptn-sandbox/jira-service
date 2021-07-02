@@ -62,6 +62,8 @@ secret/jira-details created
 
 The *jira-service* can be installed as a part of [Keptn's uniform](https://keptn.sh).
 
+Do not deploy from `master` branch. Please switch to the release branch that matches your Keptn version.
+
 ### Deploy in your Kubernetes cluster
 
 To deploy the current version of the *jira-service* in your Keptn Kubernetes cluster, apply the [`deploy/service.yaml`](deploy/service.yaml) file:
