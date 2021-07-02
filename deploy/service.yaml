@@ -15,11 +15,11 @@ spec:
       labels:
         run: jira-service
         app.kubernetes.io/name: jira-service
-        app.kubernetes.io/version: 0.8.0
+        app.kubernetes.io/version: 0.8.5
     spec:
       containers:
         - name: jira-service
-          image: keptnsandbox/jira-service:0.8.0
+          image: keptnsandbox/jira-service:0.8.5
           ports:
             - containerPort: 8080
           env:
