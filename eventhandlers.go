@@ -99,7 +99,7 @@ func sendEventForProblemEvents(eventDestination string, eventType string, ticket
 		dtInfoEvent.Source = "jira-service"
 		dtInfoEvent.Title = "Ticket Created: " + projectKey
 		dtInfoEvent.AttachRules = createAttachRulesForProblemEvents(data)
-		dtInfoEvent.Description = "Keptn Remediation Attempt"
+		dtInfoEvent.Description = "Keptn Problem"
 		customProperties := createCustomPropertiesForProblemEvents(myKeptn, data, ticketURL)
 		dtInfoEvent.CustomProperties = customProperties
 
@@ -138,9 +138,9 @@ func createJIRATicketForProblem(myKeptn *keptnv2.Keptn, data *keptnv2.ActionFini
 	log.Println("[eventhandlers.go] Creating JIRA Body details for problem...")
 
 	// Build summary field (JIRA ticket title)
-	summary := "[REMEDIATION] " + data.GetProject() + " - " + data.GetService() + " - " + data.GetStage() + " - Result: " + string(data.Result)
+	summary := "[PROBLEM] " + data.GetProject() + " - " + data.GetService() + " - " + data.GetStage() + " - Result: " + string(data.Result)
 
-	description := "||*Remediation Status*||*Project*||*Service*||*Stage*||\n"
+	description := "||*PROBLEM Status*||*Project*||*Service*||*Stage*||\n"
 	/* Add nice JIRA icons
 	* Emojis via API don't follow the UI standard
 	* (/) = :check_mark:
