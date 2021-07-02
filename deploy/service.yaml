@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: jira-service
-          image: keptnsandbox/jira-service:latest
+          image: keptnsandbox/jira-service:0.8.0
           ports:
             - containerPort: 8080
           env:
