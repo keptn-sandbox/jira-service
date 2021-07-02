@@ -185,7 +185,7 @@ func setKeptnDetails() {
 }
 
 func setupAndDebug(myKeptn *keptnv2.Keptn, incomingEvent cloudevents.Event) {
-	log.Println("[main.go] gotEvent(%s): %s - %s", incomingEvent.Type(), myKeptn.KeptnContext, incomingEvent.Context.GetID())
+	log.Printf("[main.go] gotEvent(%s): %s - %s", incomingEvent.Type(), myKeptn.KeptnContext, incomingEvent.Context.GetID())
 
 	// Get Debug Mode
 	// This is set in the service.yaml as DEBUG "true"
