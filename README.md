@@ -1,7 +1,10 @@
 # README
 
-
 Use this branch to deploy `jira-service` if you're running Keptn `0.8.1`.
+
+```
+git clone --branch release-0.8.1 https://github.com/keptn-sandbox/jira-service
+```
 
 # jira-service
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/keptn-sandbox/jira-service)
