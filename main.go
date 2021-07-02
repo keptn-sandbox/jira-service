@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2" // make sure to use v2 cloudevents here
 	"github.com/kelseyhightower/envconfig"
@@ -67,26 +68,17 @@ func processKeptnCloudEvent(ctx context.Context, event cloudevents.Event) error 
 	setupAndDebug(myKeptn, event)
 
 	log.Println("[main.go] Received Cloud Event Type: " + event.Type())
-	log.Println("[main.go] Printing generated FinishedEventType where param is EvaluationTaskName")
-	log.Println("[main.go]" + keptnv2.GetFinishedEventType(keptnv2.EvaluationTaskName))
 
-	switch event.Type() {
+	if strings.HasSuffix(event.Type(), ".remediation.finished") { // sh.keptn.event.STAGENAME.remediation.finished
+		log.Println("Processing remediation.finished Event")
 
-	// Listen for remediation.finished
-	case keptnv2.GetFinishedEventType(keptnv2.ActionTaskName): // sh.keptn.event.remediation.finished
-		log.Println("Processing Remediation.Finished Event")
-		// Please note: Processing .started, .status.changed and .finished events is only recommended when you want to
-		// notify an external service (e.g., for logging purposes).
-
-		//eventData := &keptnv2.RemediationFinishedEventData{}
 		eventData := &keptnv2.ActionFinishedEventData{}
 		parseKeptnCloudEventPayload(event, eventData)
 
 		HandleRemediationFinishedEvent(myKeptn, event, eventData)
-
-	// Handle evaluation.finished event type
-	case keptnv2.GetFinishedEventType(keptnv2.EvaluationTaskName): // sk.keptn.event.evaluation.finished
-		log.Println("Processing Evaluation.Finished Event")
+	}
+	if strings.HasSuffix(event.Type(), ".evaluation.finished") { //sh.keptn.event.STAGENAME.evaluation.finished
+		log.Println("Processing evaluation.finished Event")
 
 		eventData := &keptnv2.EvaluationFinishedEventData{}
 		parseKeptnCloudEventPayload(event, eventData)
