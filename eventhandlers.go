@@ -480,11 +480,13 @@ func createJIRATicket(summary string, description string, labels []string) strin
 
 	if err != nil {
 
-		_, err2 := ioutil.ReadAll(response.Body)
+		data, err2 := ioutil.ReadAll(response.Body)
 		if err != nil {
 			log.Println(err2)
+			log.Println(data)
 		}
 		log.Println(err)
+		log.Println(data)
 	} else {
 		log.Println("[eventhandlers.go] Created ticket successfully: ", issue.Key)
 	}
