@@ -15,11 +15,11 @@ spec:
       labels:
         run: jira-service
         app.kubernetes.io/name: jira-service
-        app.kubernetes.io/version: 0.8.5
+        app.kubernetes.io/version: 0.8.6
     spec:
       containers:
         - name: jira-service
-          image: keptnsandbox/jira-service:0.8.5
+          image: keptnsandbox/jira-service:0.8.6
           ports:
             - containerPort: 8080
           env:
@@ -98,7 +98,7 @@ spec:
             - name: DEBUG
               value: 'false'
         - name: distributor
-          image: keptn/distributor:0.8.5
+          image: keptn/distributor:0.8.6
           livenessProbe:
             httpGet:
               path: /health
