@@ -1,9 +1,9 @@
 # README
 
-Use this branch to deploy `jira-service` if you're running Keptn `0.8.5`.
+Use this branch to deploy `jira-service` if you're running Keptn `0.8.6`.
 
 ```
-git clone --branch release-0.8.5 https://github.com/keptn-sandbox/jira-service
+git clone --branch release-0.8.6 https://github.com/keptn-sandbox/jira-service
 ```
 
 # jira-service
@@ -16,6 +16,7 @@ This implements a jira-service for Keptn. If you want to learn more about Keptn 
 
 | Keptn Version    | [jira-service Docker Image](https://hub.docker.com/r/keptnsandbox/jira-service/tags) |
 |:----------------:|:----------------------------------------:|
+|       0.8.6      | keptnsandbox/jira-service:0.8.6 |
 |       0.8.5      | keptnsandbox/jira-service:0.8.5 |
 |       0.8.4      | keptnsandbox/jira-service:0.8.4 |
 |       0.8.3      | keptnsandbox/jira-service:0.8.3 |
