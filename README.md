@@ -1,3 +1,5 @@
+> :warning: This service is no longer maintained. I recommend you check out the [Keptn Lifecycle Toolkit](https://lifecycle.keptn.sh) instead.
+
 # README
 
 Do not deploy from this branch. This branch is a development branch and should be considered unstable.
